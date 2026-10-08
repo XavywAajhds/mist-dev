@@ -381,13 +381,16 @@
   const BROWSER_HOME = "https://duckduckgo.com/";
   const BROWSE_SITES = {
     tiktok:  { name: "TikTok",  url: "https://www.tiktok.com/" },
-    youtube: { name: "YouTube", url: "https://yewtu.be/" },
+    youtube: { name: "YouTube", url: "https://www.youtube.com/" },
     discord: { name: "Discord", url: "https://discord.com/app" },
     chatgpt: { name: "ChatGPT", url: "https://chatgpt.com/" },
   };
   const PROXY_FETCHERS = [
     (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
     (u) => "https://cors.eu.org/" + u,
+  ];
+  const PROXY_EMBED = [
+    (u) => "https://dibbleway.com/?url=" + encodeURIComponent(u),
   ];
 
   async function loadPage(url) {
@@ -412,9 +415,28 @@
       '<div style="margin-top:12px;color:#6d8dff;font-size:12.5px">Mist.Dev Browser (In Beta)</div></div>';
   }
 
-  async function startPage(t, url, title) {
+  function startPage(t, url, title) {
     t.url = url;
     if (title) t.title = title;
+    t.frame.addEventListener("load", function onLoad() {
+      t.frame.removeEventListener("load", onLoad);
+      try {
+        const ti = t.frame.contentDocument && t.frame.contentDocument.title;
+        if (ti) t.title = ti;
+      } catch (e) {}
+      renderBrowserTabs();
+    });
+    if (t.embed) {
+      t.frame.src = PROXY_EMBED[0](url);
+      renderBrowserTabs();
+      return;
+    }
+    t.frame.srcdoc = browserErrorBox("Loading " + esc(browserHost(url)) + "...", "");
+    renderBrowserTabs();
+    loadViaChain(t, url);
+  }
+
+  async function loadViaChain(t, url) {
     try {
       const html = await loadPage(url);
       if (t.url !== url) return;
@@ -433,14 +455,6 @@
     html = html.replace(/<head[^>]*>/i, (m) => m + '<base href="' + t.url + '">');
     try { t.frame.srcdoc = html; } catch (e) { t.frame.srcdoc = "<html><body></body></html>"; }
     t.title = browserHost(t.url);
-    t.frame.addEventListener("load", function onLoad() {
-      t.frame.removeEventListener("load", onLoad);
-      try {
-        const ti = t.frame.contentDocument && t.frame.contentDocument.title;
-        if (ti) t.title = ti;
-      } catch (e) {}
-      renderBrowserTabs();
-    });
     renderBrowserTabs();
   }
 
@@ -513,12 +527,12 @@
     setTimeout(() => { try { $("#browserSearch").focus({ preventScroll: true }); } catch (e) {} }, 40);
   }
 
-  function addBrowserTab(url, title) {
-    const t = { id: ++browserTabId, title: title || browserHost(url), url: url };
+  function addBrowserTab(url, title, embed) {
+    const t = { id: ++browserTabId, title: title || browserHost(url), url: url, embed: !!embed };
     const f = document.createElement("iframe");
     f.className = "browser-frame";
     f.allow = "autoplay; fullscreen; clipboard-write; accelerometer; gyroscope";
-    f.sandbox = "allow-scripts allow-same-origin allow-forms allow-modals";
+    if (!embed) f.sandbox = "allow-scripts allow-same-origin allow-forms allow-modals";
     t.frame = f;
     browserTabs.push(t);
     $("#browserStage").appendChild(f);
@@ -565,14 +579,18 @@
 
   function openBrowserShortcut(key) {
     const site = key ? BROWSE_SITES[key] : null;
-    const url = site ? site.url : BROWSER_HOME;
-    const existing = site ? browserTabFor(url) : null;
+    if (!site) {
+      addBrowserTab(BROWSER_HOME, "New tab", false);
+      focusBrowserSearch();
+      return;
+    }
+    const existing = browserTabFor(site.url);
     if (existing) {
       setBrowserTab(existing.id);
       focusBrowserSearch();
       return;
     }
-    addBrowserTab(url, site ? site.name : "New tab");
+    addBrowserTab(site.url, site.name, true);
     focusBrowserSearch();
   }
 
