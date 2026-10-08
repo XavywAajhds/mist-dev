@@ -258,6 +258,20 @@
 
   /* ---------- Player ---------- */
   let currentGame = null;
+  const SOUND_URL = "sound.mp3";
+  let gameSound = null;
+
+  function playGameOpenSound() {
+    try {
+      if (!gameSound) {
+        gameSound = new Audio(SOUND_URL);
+        gameSound.preload = "auto";
+      }
+      gameSound.currentTime = 0;
+      const p = gameSound.play();
+      if (p) p.catch(() => {});
+    } catch (e) {}
+  }
 
   async function loadGameHtml(g, attempt) {
     try {
@@ -289,6 +303,7 @@
   async function openGame(g) {
     if (!g) return;
     currentGame = g;
+    playGameOpenSound();
     $("#playerTitle").textContent = g.name;
     showView("player");
     playerOverlay("Loading " + esc(g.name) + "...");
