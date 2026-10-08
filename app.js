@@ -84,6 +84,7 @@
     $$(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
     if (name !== "player") window.scrollTo(0, 0);
     if (name === "games") setTimeout(() => $("#searchInput").focus({ preventScroll: true }), 50);
+    if (name === "browser") ensureBrowser();
   }
 
   document.addEventListener("click", (e) => {
@@ -365,6 +366,7 @@
       }
     }
     if (e.key === "Escape" && currentView === "player" && !document.fullscreenElement) closeGame();
+    else if (e.key === "Escape" && currentView === "browser" && !document.fullscreenElement) showView(lastBrowseView);
   });
   $("#playerFull").addEventListener("click", () => {
     const wrap = $(".player-frame-wrap");
@@ -374,6 +376,166 @@
   document.addEventListener("fullscreenchange", () => {
     $("#playerFull").innerHTML = document.fullscreenElement ? "&#x26F6; Exit" : "&#x26F6; Fullscreen";
   });
+
+  /* ---------- Browser (Beta) ---------- */
+  const BROWSE_PROXY = "https://translate.google.com/translate?u=";
+  const BROWSER_HOME = "https://duckduckgo.com/";
+  const BROWSE_SITES = {
+    tiktok:  { name: "TikTok",  url: "https://www.tiktok.com/" },
+    youtube: { name: "YouTube", url: "https://www.youtube.com/" },
+    discord: { name: "Discord", url: "https://discord.com/app" },
+    chatgpt: { name: "ChatGPT", url: "https://chatgpt.com/" },
+  };
+  const browserTabs = [];
+  let browserActiveId = null;
+  let browserTabId = 0;
+
+  function browseUrl(raw) {
+    const s = String(raw || "").trim();
+    if (!s) return null;
+    if (/^https?:\/\//i.test(s)) return s;
+    if (!/\s/.test(s) && s.indexOf(".") >= 0) return "https://" + s;
+    return BROWSER_HOME + "?q=" + encodeURIComponent(s);
+  }
+
+  function browseProxy(url) {
+    return BROWSE_PROXY + encodeURIComponent(url) + "&sl=auto&tl=en";
+  }
+
+  function browserHost(url) {
+    try { return new URL(url).host.replace("www.", ""); } catch (e) { return "Browser"; }
+  }
+
+  function siteColor(site) {
+    return site === "tiktok" ? "#25f4ee" : site === "youtube" ? "#ff0033" : site === "discord" ? "#5865f2" : "#10a37f";
+  }
+
+  function browserTabFor(url) {
+    return browserTabs.find((t) => t.url.indexOf(url) === 0) || null;
+  }
+
+  function renderBrowserTabs() {
+    const strip = $("#browserTabs");
+    strip.innerHTML = "";
+    browserTabs.forEach((t) => {
+      const b = document.createElement("button");
+      b.className = "browser-tab" + (t.id === browserActiveId ? " active" : "");
+      b.innerHTML = '<span class="bt-dot"></span><span class="bt-title"></span><span class="bt-x">\u00d7</span>';
+      b.querySelector(".bt-title").textContent = t.title;
+      const host = browserHost(t.url).replace(/^duckduckgo$/, "Search");
+      b.title = host;
+      const dot = b.querySelector(".bt-dot");
+      const site = Object.keys(BROWSE_SITES).find((k) => t.url.indexOf(BROWSE_SITES[k].url) === 0);
+      if (site) dot.style.background = siteColor(site);
+      b.addEventListener("click", (e) => {
+        if (e.target.classList.contains("bt-x")) closeBrowserTab(t.id);
+        else setBrowserTab(t.id);
+      });
+      strip.appendChild(b);
+    });
+    const plus = document.createElement("button");
+    plus.className = "browser-tab plus";
+    plus.textContent = "+";
+    plus.title = "New tab";
+    plus.addEventListener("click", () => openBrowserShortcut(null));
+    strip.appendChild(plus);
+  }
+
+  function isBrowserHome(t) {
+    return t.url.indexOf("duckduckgo.com") >= 0 && t.url.indexOf("?q=") === -1;
+  }
+
+  function focusBrowserFrame(id) {
+    const t = browserTabs.find((x) => x.id === (id || browserActiveId));
+    if (!t || !t.frame) return;
+    try { t.frame.focus(); if (t.frame.contentWindow) t.frame.contentWindow.focus(); } catch (e) {}
+  }
+
+  function focusBrowserSearch() {
+    setTimeout(() => { try { $("#browserSearch").focus({ preventScroll: true }); } catch (e) {} }, 40);
+  }
+
+  function addBrowserTab(url, title) {
+    const t = { id: ++browserTabId, title: title || browserHost(url), url: url };
+    const f = document.createElement("iframe");
+    f.className = "browser-frame";
+    f.allow = "autoplay; fullscreen; clipboard-write; accelerometer; gyroscope";
+    f.addEventListener("load", () => {
+      let ti = "";
+      try { ti = (f.contentDocument && f.contentDocument.title) || ""; } catch (e) {}
+      if (ti) { t.title = ti; renderBrowserTabs(); }
+    });
+    t.frame = f;
+    browserTabs.push(t);
+    $("#browserStage").appendChild(f);
+    f.src = browseProxy(url);
+    setBrowserTab(t.id);
+    return t;
+  }
+
+  function setBrowserTab(id) {
+    browserActiveId = id;
+    browserTabs.forEach((t) => { t.frame.style.display = t.id === id ? "block" : "none"; });
+    const t = browserTabs.find((x) => x.id === id);
+    if (t) {
+      $("#browserTitle").textContent = t.title;
+      $("#browserSearch").value = isBrowserHome(t) ? "" : t.url;
+    }
+    renderBrowserTabs();
+    focusBrowserFrame(id);
+  }
+
+  function closeBrowserTab(id) {
+    const i = browserTabs.findIndex((t) => t.id === id);
+    if (i === -1) return;
+    browserTabs[i].frame.remove();
+    browserTabs.splice(i, 1);
+    if (!browserTabs.length) { addBrowserTab(BROWSER_HOME); return; }
+    if (browserActiveId === id) setBrowserTab(browserTabs[Math.min(i, browserTabs.length - 1)].id);
+    else renderBrowserTabs();
+  }
+
+  function browserNavigate(raw) {
+    const t = browserTabs.find((x) => x.id === browserActiveId);
+    if (!t) return;
+    const url = browseUrl(raw);
+    if (!url) return;
+    if (url === t.url) return;
+    t.url = url;
+    t.title = browserHost(url);
+    t.frame.src = browseProxy(url);
+    $("#browserSearch").value = isBrowserHome(t) ? "" : url;
+    $("#browserSearch").blur();
+    renderBrowserTabs();
+    focusBrowserFrame(t.id);
+  }
+
+  function openBrowserShortcut(key) {
+    const site = key ? BROWSE_SITES[key] : null;
+    const url = site ? site.url : BROWSER_HOME;
+    const existing = site ? browserTabFor(url) : null;
+    if (existing) {
+      setBrowserTab(existing.id);
+      focusBrowserSearch();
+      return;
+    }
+    addBrowserTab(url, site ? site.name : "New tab");
+    focusBrowserSearch();
+  }
+
+  function ensureBrowser() {
+    if (!browserTabs.length) addBrowserTab(BROWSER_HOME, "New tab");
+  }
+
+  $("#browserGo").addEventListener("click", () => browserNavigate($("#browserSearch").value));
+  $("#browserSearch").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); browserNavigate($("#browserSearch").value); }
+  });
+  $$(".browser-shortcut").forEach((b) =>
+    b.addEventListener("click", () => openBrowserShortcut(b.dataset.site))
+  );
+  $("#browserClose").addEventListener("click", () => showView(lastBrowseView));
+  $(".browser-stage").addEventListener("mousedown", () => setTimeout(focusBrowserFrame, 10));
 
   /* ---------- Load games ---------- */
   async function fetchJson(urls) {
