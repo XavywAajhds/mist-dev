@@ -378,14 +378,76 @@
   });
 
   /* ---------- Browser (Beta) ---------- */
-  const BROWSE_PROXY = "https://translate.google.com/translate?u=";
   const BROWSER_HOME = "https://duckduckgo.com/";
   const BROWSE_SITES = {
     tiktok:  { name: "TikTok",  url: "https://www.tiktok.com/" },
-    youtube: { name: "YouTube", url: "https://www.youtube.com/" },
+    youtube: { name: "YouTube", url: "https://yewtu.be/" },
     discord: { name: "Discord", url: "https://discord.com/app" },
     chatgpt: { name: "ChatGPT", url: "https://chatgpt.com/" },
   };
+  const PROXY_FETCHERS = [
+    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    (u) => "https://cors.eu.org/" + u,
+  ];
+
+  async function loadPage(url) {
+    let lastErr = null;
+    for (const make of PROXY_FETCHERS) {
+      try {
+        const r = await fetch(make(url));
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const html = await r.text();
+        if (!html || html.length < 40) throw new Error("Empty response");
+        return html;
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error("proxy failed");
+  }
+
+  function browserErrorBox(title, msg) {
+    return '<style>body{background:#0f1117;margin:0;font-family:system-ui,sans-serif;color:#9aa3b5;display:grid;place-items:center;height:100vh;text-align:center;padding:24px;font-size:14px}</style>' +
+      '<div><div style="font-size:38px;margin-bottom:8px">&#127760;</div>' +
+      '<div style="color:#e7eaf3;font-weight:700;font-size:17px;margin-bottom:6px">' + esc(title) + "</div>" +
+      '<div style="max-width:420px">' + esc(msg) + '</div>' +
+      '<div style="margin-top:12px;color:#6d8dff;font-size:12.5px">Mist.Dev Browser (In Beta)</div></div>';
+  }
+
+  async function startPage(t, url, title) {
+    t.url = url;
+    if (title) t.title = title;
+    try {
+      const html = await loadPage(url);
+      if (t.url !== url) return;
+      t.html = html;
+      renderIntoFrame(t);
+    } catch (e) {
+      if (t.url !== url) return;
+      t.title = browserHost(url);
+      errorIntoFrame(t, browserHost(url), "Could not open this site through the proxy. Try again, or use the search bar.");
+    }
+  }
+
+  function renderIntoFrame(t) {
+    let html = t.html || "";
+    if (!/<head\b/i.test(html)) html = "<html><head></head><body>" + html + "</body></html>";
+    html = html.replace(/<head[^>]*>/i, (m) => m + '<base href="' + t.url + '">');
+    try { t.frame.srcdoc = html; } catch (e) { t.frame.srcdoc = "<html><body></body></html>"; }
+    t.title = browserHost(t.url);
+    t.frame.addEventListener("load", function onLoad() {
+      t.frame.removeEventListener("load", onLoad);
+      try {
+        const ti = t.frame.contentDocument && t.frame.contentDocument.title;
+        if (ti) t.title = ti;
+      } catch (e) {}
+      renderBrowserTabs();
+    });
+    renderBrowserTabs();
+  }
+
+  function errorIntoFrame(t, title, msg) {
+    t.frame.srcdoc = browserErrorBox(title, msg);
+    renderBrowserTabs();
+  }
   const browserTabs = [];
   let browserActiveId = null;
   let browserTabId = 0;
@@ -396,10 +458,6 @@
     if (/^https?:\/\//i.test(s)) return s;
     if (!/\s/.test(s) && s.indexOf(".") >= 0) return "https://" + s;
     return BROWSER_HOME + "?q=" + encodeURIComponent(s);
-  }
-
-  function browseProxy(url) {
-    return BROWSE_PROXY + encodeURIComponent(url) + "&sl=auto&tl=en";
   }
 
   function browserHost(url) {
@@ -460,16 +518,12 @@
     const f = document.createElement("iframe");
     f.className = "browser-frame";
     f.allow = "autoplay; fullscreen; clipboard-write; accelerometer; gyroscope";
-    f.addEventListener("load", () => {
-      let ti = "";
-      try { ti = (f.contentDocument && f.contentDocument.title) || ""; } catch (e) {}
-      if (ti) { t.title = ti; renderBrowserTabs(); }
-    });
+    f.sandbox = "allow-scripts allow-same-origin allow-forms allow-modals";
     t.frame = f;
     browserTabs.push(t);
     $("#browserStage").appendChild(f);
-    f.src = browseProxy(url);
     setBrowserTab(t.id);
+    startPage(t, url, title);
     return t;
   }
 
@@ -500,13 +554,12 @@
     if (!t) return;
     const url = browseUrl(raw);
     if (!url) return;
-    if (url === t.url) return;
-    t.url = url;
     t.title = browserHost(url);
-    t.frame.src = browseProxy(url);
-    $("#browserSearch").value = isBrowserHome(t) ? "" : url;
+    t.frame.srcdoc = browserErrorBox("Loading " + esc(browserHost(url)) + "...", "");
+    $("#browserSearch").value = isBrowserHome({ url: url }) ? "" : url;
     $("#browserSearch").blur();
     renderBrowserTabs();
+    startPage(t, url, "");
     focusBrowserFrame(t.id);
   }
 
