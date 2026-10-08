@@ -28,10 +28,6 @@
         <span>Games</span>
         <span class="nav-badge" id="gameCount"></span>
       </button>
-      <button class="nav-item" data-view="browser">
-        <img src="icons/globe.png" alt="">
-        <span>Browser(In Beta)</span>
-      </button>
       <button class="nav-item" data-view="settings">
         <img src="icons/settings.png" alt="">
         <span>Settings</span>
@@ -109,29 +105,6 @@
       <div class="player-frame-wrap">
         <iframe id="gameFrame" tabindex="-1" allow="autoplay; fullscreen; pointer-lock; gamepad; keyboard-lock; clipboard-write; accelerometer; gyroscope" allowfullscreen></iframe>
       </div>
-    </section>
-
-    <!-- BROWSER -->
-    <section class="view browser-view" id="view-browser">
-      <div class="browser-bar">
-        <button class="btn ghost" id="browserClose">&larr; Back</button>
-        <div class="browser-title" id="browserTitle">Browser (In Beta)</div>
-      </div>
-      <div class="browser-head">
-        <h1 class="browser-logo">Mist.Dev</h1>
-        <div class="browser-searchbar">
-          <input type="text" id="browserSearch" placeholder="Search DuckDuckGo or type a URL..." autocomplete="off" spellcheck="false">
-          <button class="btn primary" id="browserGo">Go</button>
-        </div>
-        <div class="browser-shortcuts">
-          <button class="browser-shortcut" data-site="tiktok"><span class="sicon tiktok">T</span>TikTok</button>
-          <button class="browser-shortcut" data-site="youtube"><span class="sicon youtube">&#9654;</span>YouTube</button>
-          <button class="browser-shortcut" data-site="discord"><span class="sicon discord">D</span>Discord</button>
-          <button class="browser-shortcut" data-site="chatgpt"><span class="sicon chatgpt">&#10022;</span>ChatGPT</button>
-        </div>
-      </div>
-      <div class="browser-tabs" id="browserTabs"></div>
-      <div class="browser-stage" id="browserStage"></div>
     </section>
 
     <!-- SETTINGS -->
