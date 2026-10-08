@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mist.Dev</title>
+<link rel="icon" id="siteFavicon" href="icons/favicon.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <img class="brand-icon" src="icons/home.png" alt="">
+      <div class="brand-text">
+        <div class="brand-name">Mist.Dev</div>
+        <div class="brand-sub">A game website made for Content Keeper.</div>
+      </div>
+    </div>
+
+    <div class="nav-items">
+      <button class="nav-item active" data-view="home">
+        <img src="icons/home.png" alt="">
+        <span>Home</span>
+      </button>
+      <button class="nav-item" data-view="games">
+        <img src="icons/games.png" alt="">
+        <span>Games</span>
+        <span class="nav-badge" id="gameCount"></span>
+      </button>
+      <button class="nav-item" data-view="settings">
+        <img src="icons/settings.png" alt="">
+        <span>Settings</span>
+      </button>
+    </div>
+
+    <div class="sidebar-foot">Mist.Dev</div>
+  </nav>
+
+  <main class="main">
+    <!-- HOME -->
+    <section class="view active" id="view-home">
+      <header class="hero">
+        <h1>Mist.Dev</h1>
+        <p class="hero-washere">!!Misty!!Mods!! was here</p>
+        <p class="hero-sub">A game website made for Content Keeper.<br>
+        remade to Mist.Dev<br>
+        A game website for yall people who LOVE work frfr<br>
+        (join my discord for new unblocked links if this one gets blocked)</p>
+        <p class="hero-madeby">made by XavyWavy1 on discord · join for more links</p>
+        <div class="hero-actions">
+          <a class="btn primary" id="discordBtn" href="https://discord.gg/TYbRtQRc7k" target="_blank" rel="noopener">Join the Discord</a>
+          <button class="btn ghost" id="heroPlay">Browse games</button>
+          <button class="btn ghost" id="heroRandom">Random game</button>
+        </div>
+        <div class="hero-stats" id="heroStats"></div>
+      </header>
+
+      <div class="section-head">
+        <h2>Featured</h2>
+        <button class="link-btn" data-view="games">See all &rarr;</button>
+      </div>
+      <div class="grid" id="featuredGrid"></div>
+
+      <div class="section-head">
+        <h2>Popular</h2>
+      </div>
+      <div class="grid" id="popularGrid"></div>
+    </section>
+
+    <!-- GAMES -->
+    <section class="view" id="view-games">
+      <header class="page-head">
+        <h1>Games</h1>
+        <div class="toolbar">
+          <input type="search" id="searchInput" placeholder="Search 800+ games..." autocomplete="off">
+          <select id="sortSelect">
+            <option value="default">Sort: Default</option>
+            <option value="az">Sort: A-Z</option>
+            <option value="za">Sort: Z-A</option>
+          </select>
+        </div>
+        <div class="chips" id="filterChips">
+          <button class="chip active" data-filter="all">All</button>
+          <button class="chip" data-filter="featured">Featured</button>
+        </div>
+      </header>
+      <div class="grid" id="gamesGrid"></div>
+      <div class="empty" id="gamesEmpty" hidden>No games match your search.</div>
+      <div class="loading" id="gamesLoading">Loading games...</div>
+    </section>
+
+    <!-- PLAYER -->
+    <section class="view player-view" id="view-player">
+      <div class="player-bar">
+        <button class="btn ghost" id="playerBack">&larr; Back</button>
+        <div class="player-title" id="playerTitle">Game</div>
+        <div class="player-actions">
+          <button class="btn ghost" id="playerReload" title="Reload">&#8635;</button>
+          <button class="btn ghost" id="playerFullPage" title="Play in full page">&#x2940; Full page</button>
+          <a class="btn ghost" id="playerPopout" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
+          <button class="btn primary" id="playerFull" title="Fullscreen">&#x26F6; Fullscreen</button>
+        </div>
+      </div>
+      <div class="player-frame-wrap">
+        <iframe id="gameFrame" tabindex="-1" allow="autoplay; fullscreen; pointer-lock; gamepad; keyboard-lock; clipboard-write; accelerometer; gyroscope" allowfullscreen></iframe>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <header class="page-head">
+        <h1>Settings</h1>
+        <p class="page-sub">Personalize Mist.Dev. Settings save automatically on this device.</p>
+      </header>
+
+      <div class="settings-block">
+        <h2>Themes</h2>
+        <p class="block-sub">Pick one of 20 themes.</p>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
+
+      <div class="settings-block">
+        <h2>Tab Cloak</h2>
+        <p class="block-sub">Disguise this tab when it is not active so it looks like another site.</p>
+
+        <div class="field">
+          <label for="cloakSelect">Cloak</label>
+          <select id="cloakSelect"></select>
+        </div>
+
+        <div class="field">
+          <label for="cloakMode">When to cloak</label>
+          <select id="cloakMode">
+            <option value="inactive">When tab is not active (default)</option>
+            <option value="always">Always cloak</option>
+            <option value="off">Never cloak</option>
+          </select>
+        </div>
+
+        <div class="cloak-preview" id="cloakPreview">
+          <img id="cloakPreviewIcon" alt="" src="">
+          <span id="cloakPreviewTitle"></span>
+        </div>
+      </div>
+
+      <div class="settings-block">
+        <h2>Site</h2>
+        <div class="field">
+          <label for="defaultTab">Start tab</label>
+          <select id="defaultTab">
+            <option value="home">Mist.Dev (home)</option>
+            <option value="games">Games</option>
+          </select>
+        </div>
+        <button class="btn danger" id="resetBtn">Reset all settings</button>
+      </div>
+
+      <div class="settings-block">
+        <h2>About</h2>
+        <p class="block-sub">Mist.Dev &mdash; A game website made for Content Keeper.<br>
+        Games served from the gn-math open game library.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
