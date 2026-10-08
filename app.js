@@ -259,15 +259,70 @@
   /* ---------- Player ---------- */
   let currentGame = null;
 
-  function openGame(g) {
+  async function loadGameHtml(g, attempt) {
+    try {
+      const r = await fetch(g.url);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      let html = await r.text();
+      if (html.indexOf("<base") === -1) {
+        html = html.replace(/<head[^>]*>/i, (m) => m + '<base href="' + HTML_BASE + '">');
+      }
+      return html;
+    } catch (e) {
+      if (!attempt) {
+        await new Promise((r) => setTimeout(r, 1500));
+        return loadGameHtml(g, true);
+      }
+      throw e;
+    }
+  }
+
+  function playerOverlay(msg) {
+    const frame = $("#gameFrame");
+    frame.removeAttribute("src");
+    frame.srcdoc =
+      '<style>body{background:#0f1117;color:#9aa3b5;font-family:system-ui,sans-serif;display:grid;place-items:center;height:100vh;margin:0;font-size:15px}</style><div>' +
+      msg +
+      "</div>";
+  }
+
+  async function openGame(g) {
+    if (!g) return;
     currentGame = g;
     $("#playerTitle").textContent = g.name;
-    $("#playerPopout").href = g.url;
-    const frame = $("#gameFrame");
-    frame.src = g.url;
     showView("player");
+    playerOverlay("Loading " + esc(g.name) + "...");
+    try {
+      const html = await loadGameHtml(g, 0);
+      $("#gameFrame").srcdoc = html;
+    } catch (e) {
+      playerOverlay("Could not load this game (" + e.message + ").<br>Click reload to try again.");
+    }
     focusGame();
   }
+
+  $("#playerReload").addEventListener("click", () => openGame(currentGame));
+  $("#playerPopout").addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (!currentGame) return;
+    try {
+      const html = await loadGameHtml(currentGame, 0);
+      const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+      window.open(url, "_blank");
+    } catch (err) {
+      alert("Could not load this game: " + err.message);
+    }
+  });
+  $("#playerFullPage").addEventListener("click", async () => {
+    if (!currentGame) return;
+    try {
+      const html = await loadGameHtml(currentGame, 0);
+      const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+      window.location.href = url;
+    } catch (err) {
+      alert("Could not load this game: " + err.message);
+    }
+  });
 
   function focusGame() {
     const frame = $("#gameFrame");
@@ -284,18 +339,6 @@
   }
 
   $("#playerBack").addEventListener("click", closeGame);
-  $("#playerReload").addEventListener("click", () => {
-    if (currentGame) {
-      $("#gameFrame").src = currentGame.url;
-      focusGame();
-    }
-  });
-  $("#playerFullPage").addEventListener("click", () => {
-    if (currentGame) {
-      const url = currentGame.url.split("?")[0] + "?fullpage=1";
-      window.location.href = url;
-    }
-  });
   $("#gameFrame").addEventListener("load", focusGame);
   $(".player-frame-wrap").addEventListener("mousedown", () => {
     if ($("#gameFrame").contentDocument || true) setTimeout(focusGame, 10);
