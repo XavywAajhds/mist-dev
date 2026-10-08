@@ -390,7 +390,7 @@
     (u) => "https://cors.eu.org/" + u,
   ];
   const PROXY_EMBED = [
-    (u) => "https://dibbleway.com/?url=" + encodeURIComponent(u),
+    { home: "https://dibbleway.com/", wrap: (u) => "https://dibbleway.com/?url=" + encodeURIComponent(u) },
   ];
 
   async function loadPage(url) {
@@ -426,8 +426,16 @@
       } catch (e) {}
       renderBrowserTabs();
     });
-    if (t.embed) {
-      t.frame.src = PROXY_EMBED[0](url);
+    if (t.embed && PROXY_EMBED[0]) {
+      const p = PROXY_EMBED[0];
+      const target = p.wrap(url);
+      const goTarget = () => { if (t.frame && t.url === url) t.frame.src = target; };
+      t.frame.src = p.home;
+      t.frame.addEventListener("load", function once() {
+        t.frame.removeEventListener("load", once);
+        setTimeout(goTarget, 900);
+      });
+      setTimeout(goTarget, 5000);
       renderBrowserTabs();
       return;
     }
@@ -569,7 +577,7 @@
     const url = browseUrl(raw);
     if (!url) return;
     t.title = browserHost(url);
-    t.frame.srcdoc = browserErrorBox("Loading " + esc(browserHost(url)) + "...", "");
+    if (!t.embed) t.frame.srcdoc = browserErrorBox("Loading " + esc(browserHost(url)) + "...", "");
     $("#browserSearch").value = isBrowserHome({ url: url }) ? "" : url;
     $("#browserSearch").blur();
     renderBrowserTabs();
