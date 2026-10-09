@@ -475,6 +475,20 @@
     box.textContent = msg || "";
   }
 
+  function showBrowserHome() {
+    $("#browserFrame").hidden = true;
+    $("#browserNav").hidden = true;
+    $("#browserHomeView").hidden = false;
+    showBrowserStatus("");
+    currentBrowserUrl = "";
+  }
+
+  function showBrowserPage() {
+    $("#browserHomeView").hidden = true;
+    $("#browserFrame").hidden = false;
+    $("#browserNav").hidden = false;
+  }
+
   async function loadBrowserUrl(url, pushHistory) {
     if (!url) return;
     currentBrowserUrl = url;
@@ -485,6 +499,7 @@
       browserIndex = browserHistory.length - 1;
     }
     updateBrowserButtons();
+    showBrowserPage();
 
     const frame = $("#browserFrame");
 
@@ -539,6 +554,14 @@
   });
   $("#browserReload").addEventListener("click", () => {
     if (currentBrowserUrl) loadBrowserUrl(currentBrowserUrl, false);
+  });
+  $("#browserHome").addEventListener("click", showBrowserHome);
+  $$(".browser-shortcut").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const url = btn.dataset.url;
+      $("#browserInput").value = url;
+      loadBrowserUrl(url, true);
+    });
   });
 
   /* ---------- Browser background (dot network) ---------- */

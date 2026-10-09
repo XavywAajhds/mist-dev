@@ -113,19 +113,40 @@
 
     <!-- BROWSER -->
     <section class="view browser-view" id="view-browser">
-      <div class="browser-bar">
-        <input type="text" id="browserInput" placeholder="Search or enter a link..." autocomplete="off" spellcheck="false">
-        <button class="btn primary" id="browserGo">Go</button>
-        <div class="browser-actions">
+      <div class="browser-frame-wrap">
+        <canvas id="browserCanvas"></canvas>
+        <iframe id="browserFrame" title="Browser" hidden allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"></iframe>
+
+        <div class="browser-navbar" id="browserNav" hidden>
           <button class="btn ghost" id="browserBack" title="Back" disabled>&#8592;</button>
           <button class="btn ghost" id="browserForward" title="Forward" disabled>&#8594;</button>
           <button class="btn ghost" id="browserReload" title="Reload">&#8635;</button>
+          <button class="btn ghost" id="browserHome" title="Home">&#8962;</button>
           <a class="btn ghost" id="browserOpen" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
         </div>
-      </div>
-      <div class="browser-frame-wrap">
-        <canvas id="browserCanvas"></canvas>
-        <iframe id="browserFrame" title="Browser" allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"></iframe>
+
+        <div class="browser-home" id="browserHomeView">
+          <h1 class="browser-logo">Mist.Dev</h1>
+          <div class="browser-search">
+            <input type="text" id="browserInput" placeholder="Search or enter a link..." autocomplete="off" spellcheck="false">
+            <button class="btn primary" id="browserGo">Go</button>
+          </div>
+          <div class="browser-shortcuts">
+            <button class="browser-shortcut" data-url="https://www.youtube.com">
+              <img src="https://www.google.com/s2/favicons?domain=youtube.com&amp;sz=64" alt="">
+              <span>YouTube</span>
+            </button>
+            <button class="browser-shortcut" data-url="https://www.tiktok.com">
+              <img src="https://www.google.com/s2/favicons?domain=tiktok.com&amp;sz=64" alt="">
+              <span>TikTok</span>
+            </button>
+            <button class="browser-shortcut" data-url="https://discord.com/app">
+              <img src="https://www.google.com/s2/favicons?domain=discord.com&amp;sz=64" alt="">
+              <span>Discord</span>
+            </button>
+          </div>
+        </div>
+
         <div class="browser-status" id="browserLoading" hidden></div>
       </div>
       <p class="browser-note">Pages are loaded with JavaScript through a proxy. If a site still won't display, use &#8599; to open it in a new tab.</p>
