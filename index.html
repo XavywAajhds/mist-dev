@@ -172,7 +172,17 @@
       </div>
 
       <div class="settings-block">
-        <h2>Browser Proxy</h2>
+        <h2>Browser</h2>
+        <p class="block-sub">The Home tab loads real websites through your own free proxy server. Deploy the bundled server (see <code>proxy-server/README.md</code>), then paste its URL here. This is the most reliable option and works on a Chromebook.</p>
+        <div class="field">
+          <label for="browserAppInput">Browser app URL</label>
+          <input type="text" id="browserAppInput" placeholder="https://your-app.onrender.com" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="block-sub">Leave empty to fall back to the simple CORS proxies below, which only fetch page text.</p>
+      </div>
+
+      <div class="settings-block">
+        <h2>Browser Proxy (fallback)</h2>
         <p class="block-sub">The Browser tab fetches pages through a proxy so sites that block being embedded still load. Public proxies are tried automatically, but they are unreliable. For a proxy that always works, deploy the included Cloudflare Worker &mdash; it is free, needs no install, and works on any device (including Chromebooks).</p>
         <p class="block-sub">Deploy it in about 2 minutes, all in your browser:</p>
         <p class="block-sub">

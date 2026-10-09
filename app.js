@@ -14,7 +14,7 @@
   const COVER_FALLBACK = "https://cdn.jsdelivr.net/gh/gn-math/covers@main/";
 
   /* ---------- Settings ---------- */
-  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "" };
+  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "", browserApp: "" };
   let settings = Object.assign({}, defaults);
   try {
     Object.assign(settings, JSON.parse(localStorage.getItem(LS) || "{}"));
@@ -497,6 +497,16 @@
 
     const frame = $("#browserFrame");
 
+    // A self-hosted proxy app (Settings -> Browser) handles everything itself.
+    const appUrl = browserAppUrl(url);
+    if (appUrl) {
+      frame.removeAttribute("srcdoc");
+      frame.src = appUrl;
+      $("#browserOpen").href = appUrl;
+      showBrowserStatus("");
+      return;
+    }
+
     // Searches use the frame-friendly Google endpoint directly.
     if (isSearchUrl(url)) {
       frame.removeAttribute("srcdoc");
@@ -519,6 +529,12 @@
       showBrowserStatus("Loaded directly (proxy unavailable). Some sites may refuse to display.");
       setTimeout(() => showBrowserStatus(""), 4000);
     }
+  }
+
+  function browserAppUrl(url) {
+    const base = (settings.browserApp || "").trim();
+    if (!base) return "";
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + "url=" + encodeURIComponent(url);
   }
 
   function browserGo() {
@@ -770,6 +786,11 @@
   renderCloakOptions();
   $("#defaultTab").value = settings.defaultTab;
   $("#proxyInput").value = settings.proxy || "";
+  $("#browserAppInput").value = settings.browserApp || "";
+  $("#browserAppInput").addEventListener("change", (e) => {
+    settings.browserApp = e.target.value.trim();
+    save();
+  });
   showView(settings.defaultTab === "games" ? "games" : "browser");
   document.title = REAL_TITLE;
   loadGames();

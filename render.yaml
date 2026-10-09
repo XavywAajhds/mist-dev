@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: mist-dev-browser
+    runtime: docker
+    plan: free
+    autoDeploy: false
+    dockerContext: ./proxy-server
+    dockerfilePath: ./proxy-server/Dockerfile
+    envVars:
+      - key: PORT
+        value: "8080"
