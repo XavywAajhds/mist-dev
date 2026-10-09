@@ -84,6 +84,15 @@
     $$(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
     if (name !== "player") window.scrollTo(0, 0);
     if (name === "games") setTimeout(() => $("#searchInput").focus({ preventScroll: true }), 50);
+    if (name === "browser") {
+      setTimeout(() => {
+        bgResize();
+        startBg();
+        $("#browserInput").focus({ preventScroll: true });
+      }, 50);
+    } else {
+      stopBg();
+    }
   }
 
   document.addEventListener("click", (e) => {
@@ -97,6 +106,7 @@
     document.documentElement.setAttribute("data-theme", key);
     settings.theme = key;
     save();
+    bgColor = themePrimaryRgb();
     $$(".theme-card").forEach((c) => c.classList.toggle("active", c.dataset.theme === key));
   }
 
@@ -373,6 +383,185 @@
   });
   document.addEventListener("fullscreenchange", () => {
     $("#playerFull").innerHTML = document.fullscreenElement ? "&#x26F6; Exit" : "&#x26F6; Fullscreen";
+  });
+
+  /* ---------- Browser (BETA) ---------- */
+  let browserHistory = [];
+  let browserIndex = -1;
+
+  function resolveBrowserUrl(value) {
+    const v = value.trim();
+    if (!v) return "";
+    if (/^https?:\/\//i.test(v)) return v;
+    const looksLikeUrl = !/\s/.test(v) && /^[^\s]+\.[^\s]{2,}(\/\S*)?$/.test(v);
+    if (looksLikeUrl) return "https://" + v;
+    return "https://www.google.com/search?igu=1&q=" + encodeURIComponent(v);
+  }
+
+  function updateBrowserButtons() {
+    $("#browserBack").disabled = browserIndex <= 0;
+    $("#browserForward").disabled = browserIndex >= browserHistory.length - 1;
+  }
+
+  function loadBrowserUrl(url, pushHistory) {
+    if (!url) return;
+    $("#browserFrame").src = url;
+    $("#browserOpen").href = url;
+    if (pushHistory) {
+      browserHistory = browserHistory.slice(0, browserIndex + 1);
+      browserHistory.push(url);
+      browserIndex = browserHistory.length - 1;
+    }
+    updateBrowserButtons();
+  }
+
+  function browserGo() {
+    const url = resolveBrowserUrl($("#browserInput").value);
+    if (!url) return;
+    $("#browserInput").value = url;
+    loadBrowserUrl(url, true);
+  }
+
+  $("#browserGo").addEventListener("click", browserGo);
+  $("#browserInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") browserGo();
+  });
+  $("#browserBack").addEventListener("click", () => {
+    if (browserIndex > 0) {
+      browserIndex--;
+      $("#browserInput").value = browserHistory[browserIndex];
+      loadBrowserUrl(browserHistory[browserIndex], false);
+    }
+  });
+  $("#browserForward").addEventListener("click", () => {
+    if (browserIndex < browserHistory.length - 1) {
+      browserIndex++;
+      $("#browserInput").value = browserHistory[browserIndex];
+      loadBrowserUrl(browserHistory[browserIndex], false);
+    }
+  });
+  $("#browserReload").addEventListener("click", () => {
+    const frame = $("#browserFrame");
+    if (frame.src && frame.src !== "about:blank") frame.src = frame.src;
+  });
+
+  /* ---------- Browser background (dot network) ---------- */
+  const bgCanvas = $("#browserCanvas");
+  const bgCtx = bgCanvas.getContext("2d");
+  let bgColor = [109, 141, 255];
+  let bgDots = [];
+  let bgW = 0;
+  let bgH = 0;
+  let bgRAF = null;
+  const bgMouse = { x: -9999, y: -9999 };
+
+  function themePrimaryRgb() {
+    const hex = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim().replace("#", "");
+    if (hex.length === 3) return hex.split("").map((c) => parseInt(c + c, 16));
+    if (hex.length >= 6) return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+    return [109, 141, 255];
+  }
+
+  function bgResize() {
+    if (!bgCanvas) return;
+    const rect = bgCanvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    bgW = rect.width;
+    bgH = rect.height;
+    bgCanvas.width = Math.max(1, Math.round(bgW * dpr));
+    bgCanvas.height = Math.max(1, Math.round(bgH * dpr));
+    bgCanvas.style.width = bgW + "px";
+    bgCanvas.style.height = bgH + "px";
+    bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const count = Math.max(24, Math.min(110, Math.round((bgW * bgH) / 13000)));
+    bgDots = [];
+    for (let i = 0; i < count; i++) {
+      bgDots.push({
+        x: Math.random() * bgW,
+        y: Math.random() * bgH,
+        vx: (Math.random() - 0.5) * 0.55,
+        vy: (Math.random() - 0.5) * 0.55,
+        r: 1.4 + Math.random() * 1.6,
+      });
+    }
+  }
+
+  function bgStep() {
+    if (!bgW || !bgH) {
+      bgRAF = requestAnimationFrame(bgStep);
+      return;
+    }
+    const [r, g, b] = bgColor;
+    const linkDist = 130;
+    const mouseDist = 190;
+    bgCtx.clearRect(0, 0, bgW, bgH);
+
+    for (const d of bgDots) {
+      d.x += d.vx;
+      d.y += d.vy;
+      if (d.x <= 0 || d.x >= bgW) d.vx *= -1;
+      if (d.y <= 0 || d.y >= bgH) d.vy *= -1;
+      d.x = Math.max(0, Math.min(bgW, d.x));
+      d.y = Math.max(0, Math.min(bgH, d.y));
+    }
+
+    bgCtx.lineWidth = 1;
+    for (let i = 0; i < bgDots.length; i++) {
+      const a = bgDots[i];
+      for (let j = i + 1; j < bgDots.length; j++) {
+        const c = bgDots[j];
+        const dist = Math.hypot(a.x - c.x, a.y - c.y);
+        if (dist < linkDist) {
+          bgCtx.strokeStyle = "rgba(" + r + "," + g + "," + b + "," + (1 - dist / linkDist) * 0.32 + ")";
+          bgCtx.beginPath();
+          bgCtx.moveTo(a.x, a.y);
+          bgCtx.lineTo(c.x, c.y);
+          bgCtx.stroke();
+        }
+      }
+      const md = Math.hypot(a.x - bgMouse.x, a.y - bgMouse.y);
+      if (md < mouseDist) {
+        bgCtx.strokeStyle = "rgba(" + r + "," + g + "," + b + "," + (1 - md / mouseDist) * 0.5 + ")";
+        bgCtx.beginPath();
+        bgCtx.moveTo(a.x, a.y);
+        bgCtx.lineTo(bgMouse.x, bgMouse.y);
+        bgCtx.stroke();
+      }
+    }
+
+    bgCtx.fillStyle = "rgba(" + r + "," + g + "," + b + ",0.75)";
+    for (const d of bgDots) {
+      bgCtx.beginPath();
+      bgCtx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      bgCtx.fill();
+    }
+
+    bgRAF = requestAnimationFrame(bgStep);
+  }
+
+  function startBg() {
+    if (bgRAF) return;
+    bgRAF = requestAnimationFrame(bgStep);
+  }
+
+  function stopBg() {
+    if (bgRAF) {
+      cancelAnimationFrame(bgRAF);
+      bgRAF = null;
+    }
+  }
+
+  bgCanvas.parentElement.addEventListener("mousemove", (e) => {
+    const rect = bgCanvas.getBoundingClientRect();
+    bgMouse.x = e.clientX - rect.left;
+    bgMouse.y = e.clientY - rect.top;
+  });
+  bgCanvas.parentElement.addEventListener("mouseleave", () => {
+    bgMouse.x = -9999;
+    bgMouse.y = -9999;
+  });
+  window.addEventListener("resize", () => {
+    if (currentView === "browser") bgResize();
   });
 
   /* ---------- Load games ---------- */

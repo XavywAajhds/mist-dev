@@ -28,6 +28,10 @@
         <span>Games</span>
         <span class="nav-badge" id="gameCount"></span>
       </button>
+      <button class="nav-item" data-view="browser">
+        <img src="icons/globe.png" alt="">
+        <span>Browser (BETA)</span>
+      </button>
       <button class="nav-item" data-view="settings">
         <img src="icons/settings.png" alt="">
         <span>Settings</span>
@@ -105,6 +109,25 @@
       <div class="player-frame-wrap">
         <iframe id="gameFrame" tabindex="-1" allow="autoplay; fullscreen; pointer-lock; gamepad; keyboard-lock; clipboard-write; accelerometer; gyroscope" allowfullscreen></iframe>
       </div>
+    </section>
+
+    <!-- BROWSER -->
+    <section class="view browser-view" id="view-browser">
+      <div class="browser-bar">
+        <input type="text" id="browserInput" placeholder="Search or enter a link..." autocomplete="off" spellcheck="false">
+        <button class="btn primary" id="browserGo">Go</button>
+        <div class="browser-actions">
+          <button class="btn ghost" id="browserBack" title="Back" disabled>&#8592;</button>
+          <button class="btn ghost" id="browserForward" title="Forward" disabled>&#8594;</button>
+          <button class="btn ghost" id="browserReload" title="Reload">&#8635;</button>
+          <a class="btn ghost" id="browserOpen" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
+        </div>
+      </div>
+      <div class="browser-frame-wrap">
+        <canvas id="browserCanvas"></canvas>
+        <iframe id="browserFrame" title="Browser" allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"></iframe>
+      </div>
+      <p class="browser-note">Some sites refuse to load inside a frame. Use &#8599; to open them in a new tab.</p>
     </section>
 
     <!-- SETTINGS -->
