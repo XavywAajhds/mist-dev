@@ -420,7 +420,7 @@ button, input, select { font: inherit; color: inherit; }
 .browser-navbar {
   position: absolute;
   top: 12px;
-  left: 12px;
+  left: 78px;
   z-index: 3;
   display: flex;
   gap: 6px;
@@ -431,6 +431,7 @@ button, input, select { font: inherit; color: inherit; }
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
 }
 .browser-navbar[hidden] { display: none; }
+.browser-navbar.home .page-only { display: none; }
 .browser-navbar .btn { padding: 8px 12px; }
 .browser-navbar .btn:disabled { opacity: 0.4; cursor: default; filter: none; transform: none; }
 
@@ -512,7 +513,37 @@ button, input, select { font: inherit; color: inherit; }
 .browser-note { color: var(--muted); font-size: 12.5px; margin: 10px 2px 0; }
 
 /* ============ Responsive ============ */
+@media (min-width: 861px) {
+  .sidebar {
+    width: 66px;
+    flex: 0 0 66px;
+    padding: 18px 10px;
+    overflow: hidden;
+    z-index: 70;
+    transition: width 0.22s ease, flex-basis 0.22s ease, padding 0.22s ease, box-shadow 0.22s ease;
+  }
+  .sidebar:hover {
+    width: var(--sidebar-w);
+    flex: 0 0 var(--sidebar-w);
+    padding: 18px 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  }
+  .sidebar .brand-text,
+  .sidebar .nav-item span,
+  .sidebar .sidebar-foot {
+    opacity: 0;
+    white-space: nowrap;
+    transition: opacity 0.16s ease;
+  }
+  .sidebar:hover .brand-text,
+  .sidebar:hover .nav-item span,
+  .sidebar:hover .sidebar-foot { opacity: 1; }
+  .sidebar .nav-item { padding: 11px 10px; }
+  .sidebar:hover .nav-item { padding: 11px 12px; }
+}
+
 @media (max-width: 860px) {
+  .browser-navbar { left: 12px; }
   .app { flex-direction: column; }
   .sidebar {
     width: 100%;

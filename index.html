@@ -19,7 +19,7 @@
     </div>
 
     <div class="nav-items">
-      <button class="nav-item active" data-view="home">
+      <button class="nav-item active" data-view="browser">
         <img src="icons/home.png" alt="">
         <span>Home</span>
       </button>
@@ -27,10 +27,6 @@
         <img src="icons/games.png" alt="">
         <span>Games</span>
         <span class="nav-badge" id="gameCount"></span>
-      </button>
-      <button class="nav-item" data-view="browser">
-        <img src="icons/globe.png" alt="">
-        <span>Browser (BETA)</span>
       </button>
       <button class="nav-item" data-view="settings">
         <img src="icons/settings.png" alt="">
@@ -42,36 +38,6 @@
   </nav>
 
   <main class="main">
-    <!-- HOME -->
-    <section class="view active" id="view-home">
-      <header class="hero">
-        <h1>Mist.Dev</h1>
-        <p class="hero-washere">!!Misty!!Mods!! was here</p>
-        <p class="hero-sub">A game website made for Content Keeper.<br>
-        remade to Mist.Dev<br>
-        A game website for yall people who LOVE work frfr<br>
-        (join my discord for new unblocked links if this one gets blocked)</p>
-        <p class="hero-madeby">made by XavyWavy1 on discord · join for more links</p>
-        <div class="hero-actions">
-          <a class="btn primary" id="discordBtn" href="https://discord.gg/TYbRtQRc7k" target="_blank" rel="noopener">Join the Discord</a>
-          <button class="btn ghost" id="heroPlay">Browse games</button>
-          <button class="btn ghost" id="heroRandom">Random game</button>
-        </div>
-        <div class="hero-stats" id="heroStats"></div>
-      </header>
-
-      <div class="section-head">
-        <h2>Featured</h2>
-        <button class="link-btn" data-view="games">See all &rarr;</button>
-      </div>
-      <div class="grid" id="featuredGrid"></div>
-
-      <div class="section-head">
-        <h2>Popular</h2>
-      </div>
-      <div class="grid" id="popularGrid"></div>
-    </section>
-
     <!-- GAMES -->
     <section class="view" id="view-games">
       <header class="page-head">
@@ -117,12 +83,12 @@
         <canvas id="browserCanvas"></canvas>
         <iframe id="browserFrame" title="Browser" hidden allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"></iframe>
 
-        <div class="browser-navbar" id="browserNav" hidden>
-          <button class="btn ghost" id="browserBack" title="Back" disabled>&#8592;</button>
-          <button class="btn ghost" id="browserForward" title="Forward" disabled>&#8594;</button>
-          <button class="btn ghost" id="browserReload" title="Reload">&#8635;</button>
+        <div class="browser-navbar home" id="browserNav">
+          <button class="btn ghost page-only" id="browserBack" title="Back" disabled>&#8592;</button>
+          <button class="btn ghost page-only" id="browserForward" title="Forward" disabled>&#8594;</button>
+          <button class="btn ghost page-only" id="browserReload" title="Reload">&#8635;</button>
           <button class="btn ghost" id="browserHome" title="Home">&#8962;</button>
-          <a class="btn ghost" id="browserOpen" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
+          <a class="btn ghost page-only" id="browserOpen" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
           <button class="btn ghost" id="browserExit" title="Exit browser">&#10005;</button>
         </div>
 
@@ -198,7 +164,7 @@
         <div class="field">
           <label for="defaultTab">Start tab</label>
           <select id="defaultTab">
-            <option value="home">Mist.Dev (home)</option>
+            <option value="browser">Home</option>
             <option value="games">Games</option>
           </select>
         </div>
@@ -207,14 +173,19 @@
 
       <div class="settings-block">
         <h2>Browser Proxy</h2>
-        <p class="block-sub">The Browser tab loads pages through a proxy so sites that block being embedded still work. Mist.Dev ships with a small C# proxy you run on your PC.</p>
-        <p class="block-sub">Start it once with:</p>
-        <p class="block-sub"><code>cd proxy &amp;&amp; dotnet run</code></p>
+        <p class="block-sub">The Browser tab fetches pages through a proxy so sites that block being embedded still load. Public proxies are tried automatically, but they are unreliable. For a proxy that always works, deploy the included Cloudflare Worker &mdash; it is free, needs no install, and works on any device (including Chromebooks).</p>
+        <p class="block-sub">Deploy it in about 2 minutes, all in your browser:</p>
+        <p class="block-sub">
+          1. Sign in at <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> (free).<br>
+          2. Go to <b>Workers &amp; Pages &rarr; Create &rarr; Create Worker</b>.<br>
+          3. Delete the sample code, paste the contents of <code>proxy/worker.js</code>, then click <b>Deploy</b>.<br>
+          4. Copy your worker URL (e.g. <code>https://mist-proxy.you.workers.dev</code>) and paste it below.
+        </p>
         <div class="field">
           <label for="proxyInput">Proxy URL</label>
-          <input type="text" id="proxyInput" placeholder="http://localhost:8787/?url=" autocomplete="off" spellcheck="false">
+          <input type="text" id="proxyInput" placeholder="https://your-worker.workers.dev/?url=" autocomplete="off" spellcheck="false">
         </div>
-        <p class="block-sub">Defaults to <code>http://localhost:8787/?url=</code>. Use <code>%s</code> as a placeholder for the target URL (e.g. <code>https://myproxy.dev/?url=%s</code>). It is tried before the built-in public proxies.</p>
+        <p class="block-sub">Enter it as <code>https://your-worker.workers.dev/?url=</code>, or use <code>%s</code> as the placeholder for the target URL. Leave it empty to use the public proxies. On a PC you can instead run the bundled proxy with <code>cd proxy &amp;&amp; dotnet run</code> and enter <code>http://localhost:8787/?url=</code>.</p>
       </div>
 
       <div class="settings-block">

@@ -14,12 +14,13 @@
   const COVER_FALLBACK = "https://cdn.jsdelivr.net/gh/gn-math/covers@main/";
 
   /* ---------- Settings ---------- */
-  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "home", proxy: "http://localhost:8787/?url=" };
+  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "" };
   let settings = Object.assign({}, defaults);
   try {
     Object.assign(settings, JSON.parse(localStorage.getItem(LS) || "{}"));
   } catch (e) {}
   if (!settings.proxy) settings.proxy = defaults.proxy;
+  if (settings.proxy === "http://localhost:8787/?url=") settings.proxy = "";
   function save() {
     localStorage.setItem(LS, JSON.stringify(settings));
   }
@@ -72,11 +73,11 @@
   const $$ = (s) => Array.from(document.querySelectorAll(s));
 
   /* ---------- Navigation ---------- */
-  let currentView = "home";
+  let currentView = "browser";
   let lastBrowseView = "games";
 
   function showView(name) {
-    if (name !== "player") lastBrowseView = name === "home" ? "home" : "games";
+    if (name !== "player") lastBrowseView = name;
     if (currentView === "player" && name !== "player") $("#gameFrame").src = "about:blank";
     currentView = name;
     $$(".view").forEach((v) => v.classList.remove("active"));
@@ -87,6 +88,8 @@
     if (name === "games") setTimeout(() => $("#searchInput").focus({ preventScroll: true }), 50);
     if (name === "browser") {
       setTimeout(() => {
+        if (currentBrowserUrl) showBrowserPage();
+        else showBrowserHome();
         bgResize();
         startBg();
         $("#browserInput").focus({ preventScroll: true });
@@ -236,18 +239,6 @@
     const frag = document.createDocumentFragment();
     list.forEach((g) => frag.appendChild(makeCard(g)));
     el.appendChild(frag);
-  }
-
-  function renderHome() {
-    const featured = games.filter((g) => g.featured);
-    fillGrid($("#featuredGrid"), featured.slice(0, 10));
-    fillGrid($("#popularGrid"), games.slice(0, 10));
-    $("#heroStats").innerHTML =
-      "<span><b>" + games.length + "</b>games</span>" +
-      "<span><b>" + featured.length + "</b>featured</span>" +
-      "<span><b>20</b>themes</span>" +
-      "<span><b>Free</b>forever</span>";
-    $("#discordBtn").href = DISCORD_URL;
   }
 
   function renderGames() {
@@ -478,7 +469,8 @@
 
   function showBrowserHome() {
     $("#browserFrame").hidden = true;
-    $("#browserNav").hidden = true;
+    $("#browserNav").hidden = false;
+    $("#browserNav").classList.add("home");
     $("#browserHomeView").hidden = false;
     showBrowserStatus("");
     currentBrowserUrl = "";
@@ -488,6 +480,7 @@
     $("#browserHomeView").hidden = true;
     $("#browserFrame").hidden = false;
     $("#browserNav").hidden = false;
+    $("#browserNav").classList.remove("home");
   }
 
   async function loadBrowserUrl(url, pushHistory) {
@@ -716,7 +709,6 @@
       $("#gameCount").textContent = games.length;
       $("#gamesLoading").hidden = true;
       $("#searchInput").placeholder = "Search " + games.length + "+ games...";
-      renderHome();
       renderGames();
       localStorage.setItem("mistdev.games.cache", JSON.stringify({ at: Date.now(), list: games }));
     } catch (e) {
@@ -726,7 +718,6 @@
           games = cached.list;
           $("#gameCount").textContent = games.length;
           $("#gamesLoading").hidden = true;
-          renderHome();
           renderGames();
           return;
         }
@@ -745,11 +736,6 @@
     $$(".chip").forEach((c) => c.classList.remove("active"));
     chip.classList.add("active");
     renderGames();
-  });
-
-  $("#heroPlay").addEventListener("click", () => showView("games"));
-  $("#heroRandom").addEventListener("click", () => {
-    if (games.length) openGame(games[Math.floor(Math.random() * games.length)]);
   });
 
   $("#cloakSelect").addEventListener("change", (e) => {
@@ -784,7 +770,7 @@
   renderCloakOptions();
   $("#defaultTab").value = settings.defaultTab;
   $("#proxyInput").value = settings.proxy || "";
-  showView(settings.defaultTab === "games" ? "games" : "home");
+  showView(settings.defaultTab === "games" ? "games" : "browser");
   document.title = REAL_TITLE;
   loadGames();
 })();
