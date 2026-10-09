@@ -368,6 +368,20 @@ button, input, select { font: inherit; color: inherit; }
 .field { display: flex; align-items: center; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
 .field label { font-size: 14px; font-weight: 600; min-width: 110px; }
 .field select { max-width: 420px; }
+.field input[type="text"] {
+  flex: 1;
+  min-width: 240px;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--transition);
+}
+.field input[type="text"]:focus { border-color: var(--primary); }
+.settings-block code { background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; font-size: 12px; }
 
 .cloak-preview {
   display: inline-flex;
@@ -411,6 +425,24 @@ button, input, select { font: inherit; color: inherit; }
 }
 #browserCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
 #browserFrame { position: relative; z-index: 1; width: 100%; height: 100%; border: 0; display: block; background: transparent; }
+.browser-status {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 2;
+  max-width: 90%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 8px 16px;
+  border-radius: 30px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .browser-note { color: var(--muted); font-size: 12.5px; margin: 10px 2px 0; }
 
 /* ============ Responsive ============ */

@@ -14,7 +14,7 @@
   const COVER_FALLBACK = "https://cdn.jsdelivr.net/gh/gn-math/covers@main/";
 
   /* ---------- Settings ---------- */
-  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "home" };
+  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "home", proxy: "" };
   let settings = Object.assign({}, defaults);
   try {
     Object.assign(settings, JSON.parse(localStorage.getItem(LS) || "{}"));
@@ -388,6 +388,29 @@
   /* ---------- Browser (BETA) ---------- */
   let browserHistory = [];
   let browserIndex = -1;
+  let currentBrowserUrl = "";
+
+  // CORS proxies used to pull a page's HTML so it can be rendered from srcdoc,
+  // which sidesteps the X-Frame-Options / frame-ancestors blocks that stop
+  // normal iframe embedding. A custom proxy (set in Settings) is tried first.
+  const BUILTIN_PROXIES = [
+    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+    (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),
+    (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
+    (u) => "https://api.cors.lol/?url=" + encodeURIComponent(u),
+    (u) => "https://cors.eu.org/" + u,
+    (u) => "https://thingproxy.freeboard.io/fetch/" + u,
+  ];
+
+  function browserProxies() {
+    const list = [];
+    const custom = (settings.proxy || "").trim();
+    if (custom) {
+      // "%s" is replaced by the target URL; otherwise the target is appended.
+      list.push((u) => (custom.indexOf("%s") >= 0 ? custom.replace("%s", u) : custom + encodeURIComponent(u)));
+    }
+    return list.concat(BUILTIN_PROXIES);
+  }
 
   function resolveBrowserUrl(value) {
     const v = value.trim();
@@ -398,14 +421,63 @@
     return "https://www.google.com/search?igu=1&q=" + encodeURIComponent(v);
   }
 
+  function isSearchUrl(url) {
+    return url.indexOf("https://www.google.com/search?igu=1") === 0;
+  }
+
+  async function fetchPageViaProxy(url) {
+    let lastErr;
+    for (const build of browserProxies()) {
+      try {
+        const r = await fetch(build(url));
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const text = await r.text();
+        if (!text || !text.trim()) throw new Error("empty response");
+        return text;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("proxy failed");
+  }
+
+  function baseHrefFor(url) {
+    try {
+      const u = new URL(url);
+      if (/\.[a-z0-9]{1,6}$/i.test(u.pathname)) {
+        return u.origin + u.pathname.replace(/[^/]*$/, "");
+      }
+      return u.origin + u.pathname + (u.pathname.endsWith("/") ? "" : "/");
+    } catch (e) {
+      return url;
+    }
+  }
+
+  function preparePageHtml(html, url) {
+    // Drop tags that would block framing or force a redirect.
+    html = html
+      .replace(/<meta[^>]+http-equiv=["']?(content-security-policy|x-frame-options|refresh)["']?[^>]*>/gi, "")
+      .replace(/<base[^>]*>/gi, "");
+    const base = '<base href="' + baseHrefFor(url) + '">';
+    if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, (m) => m + base);
+    else html = base + html;
+    return html;
+  }
+
   function updateBrowserButtons() {
     $("#browserBack").disabled = browserIndex <= 0;
     $("#browserForward").disabled = browserIndex >= browserHistory.length - 1;
   }
 
-  function loadBrowserUrl(url, pushHistory) {
+  function showBrowserStatus(msg) {
+    const box = $("#browserLoading");
+    box.hidden = !msg;
+    box.textContent = msg || "";
+  }
+
+  async function loadBrowserUrl(url, pushHistory) {
     if (!url) return;
-    $("#browserFrame").src = url;
+    currentBrowserUrl = url;
     $("#browserOpen").href = url;
     if (pushHistory) {
       browserHistory = browserHistory.slice(0, browserIndex + 1);
@@ -413,6 +485,31 @@
       browserIndex = browserHistory.length - 1;
     }
     updateBrowserButtons();
+
+    const frame = $("#browserFrame");
+
+    // Searches use the frame-friendly Google endpoint directly.
+    if (isSearchUrl(url)) {
+      frame.removeAttribute("srcdoc");
+      frame.src = url;
+      showBrowserStatus("");
+      return;
+    }
+
+    // Everything else: fetch the HTML through a proxy and render it ourselves.
+    showBrowserStatus("Loading " + url + " ...");
+    try {
+      const html = await fetchPageViaProxy(url);
+      frame.removeAttribute("src");
+      frame.srcdoc = preparePageHtml(html, url);
+      showBrowserStatus("");
+    } catch (e) {
+      // Fall back to a plain iframe in case the proxy is down.
+      frame.removeAttribute("srcdoc");
+      frame.src = url;
+      showBrowserStatus("Loaded directly (proxy unavailable). Some sites may refuse to display.");
+      setTimeout(() => showBrowserStatus(""), 4000);
+    }
   }
 
   function browserGo() {
@@ -441,8 +538,7 @@
     }
   });
   $("#browserReload").addEventListener("click", () => {
-    const frame = $("#browserFrame");
-    if (frame.src && frame.src !== "about:blank") frame.src = frame.src;
+    if (currentBrowserUrl) loadBrowserUrl(currentBrowserUrl, false);
   });
 
   /* ---------- Browser background (dot network) ---------- */
@@ -646,6 +742,10 @@
     settings.defaultTab = e.target.value;
     save();
   });
+  $("#proxyInput").addEventListener("change", (e) => {
+    settings.proxy = e.target.value.trim();
+    save();
+  });
   $("#resetBtn").addEventListener("click", () => {
     if (confirm("Reset theme, cloak and tab settings to defaults?")) {
       localStorage.removeItem(LS);
@@ -658,6 +758,7 @@
   renderThemes();
   renderCloakOptions();
   $("#defaultTab").value = settings.defaultTab;
+  $("#proxyInput").value = settings.proxy || "";
   showView(settings.defaultTab === "games" ? "games" : "home");
   document.title = REAL_TITLE;
   loadGames();
