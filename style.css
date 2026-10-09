@@ -459,6 +459,15 @@ button, input, select { font: inherit; color: inherit; }
   background-clip: text;
   color: transparent;
 }
+.browser-discord {
+  color: #8db0ff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  pointer-events: auto;
+}
+.browser-discord:hover { color: #b9d0ff; }
 .browser-search { display: flex; gap: 10px; width: min(640px, 90%); }
 .browser-search #browserInput {
   flex: 1;
