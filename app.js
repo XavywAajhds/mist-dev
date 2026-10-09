@@ -535,6 +535,10 @@
   function browserAppUrl(url) {
     const base = (settings.browserApp || "").trim();
     if (!base) return "";
+    // A same-origin app needs a secure context (service workers). An absolute
+    // https app works even when this page itself is served over http.
+    const absoluteHttps = /^https:\/\//i.test(base);
+    if (!absoluteHttps && !window.isSecureContext) return "";
     return base + (base.indexOf("?") >= 0 ? "&" : "?") + "url=" + encodeURIComponent(url);
   }
 

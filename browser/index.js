@@ -16,11 +16,14 @@ const SCRAM_FILES = {
 };
 
 const { ScramjetController } = $scramjetLoadController();
-const scramjet = new ScramjetController({
-	files: SCRAM_FILES,
-	prefix: "/browser/scramjet/",
-});
-scramjet.init();
+let scramjet = null;
+if (window.isSecureContext && navigator.serviceWorker) {
+	scramjet = new ScramjetController({
+		files: SCRAM_FILES,
+		prefix: "/browser/scramjet/",
+	});
+	scramjet.init().catch(() => {});
+}
 
 function wispCandidates() {
 	const params = new URLSearchParams(location.search);
@@ -78,6 +81,14 @@ async function go(input) {
 	if (!input || !input.trim()) return;
 	dbg("go:" + input);
 
+	if (!scramjet) {
+		error.textContent =
+			"This browser must be opened over HTTPS to work. Try https://" +
+			location.host + location.pathname;
+		errorCode.textContent = "";
+		return;
+	}
+
 	const url = search(input, SEARCH_ENGINE);
 	dbg("url:" + url);
 	const wisp = await pickWisp();
@@ -117,6 +128,8 @@ async function go(input) {
 
 	error.textContent = "";
 	errorCode.textContent = "";
+	const loading = document.getElementById("sj-loading");
+	if (loading) loading.style.display = "none";
 	const frame = scramjet.createFrame();
 	frame.frame.id = "sj-frame";
 	document.body.appendChild(frame.frame);
