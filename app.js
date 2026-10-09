@@ -3,7 +3,7 @@
   "use strict";
 
   const REAL_TITLE = "Mist.Dev";
-  const FAVICON = "/icons/favicon.png";
+  const FAVICON = "icons/favicon.png";
   const LS = "mistdev.settings";
   const DISCORD_URL = "https://discord.gg/TYbRtQRc7k";
   const ZONES_URLS = [
@@ -14,14 +14,14 @@
   const COVER_FALLBACK = "https://cdn.jsdelivr.net/gh/gn-math/covers@main/";
 
   /* ---------- Settings ---------- */
-  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "", browserApp: "https://xavywaajhds.github.io/mist-browser/" };
+  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "", browserApp: "browser/" };
   let settings = Object.assign({}, defaults);
   try {
     Object.assign(settings, JSON.parse(localStorage.getItem(LS) || "{}"));
   } catch (e) {}
   if (!settings.proxy) settings.proxy = defaults.proxy;
   if (settings.proxy === "http://localhost:8787/?url=") settings.proxy = "";
-  if (!settings.browserApp || settings.browserApp === "/browser/") settings.browserApp = defaults.browserApp;
+  if (!settings.browserApp || settings.browserApp === "/browser/" || settings.browserApp === "https://xavywaajhds.github.io/mist-browser/") settings.browserApp = defaults.browserApp;
   function save() {
     localStorage.setItem(LS, JSON.stringify(settings));
   }

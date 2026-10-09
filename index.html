@@ -4,19 +4,209 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mist.Dev</title>
-<link rel="icon" href="icons/favicon.png" type="image/png">
-<meta http-equiv="refresh" content="0; url=https://xavywaajhds.github.io/mist-browser/">
-<script>location.replace("https://xavywaajhds.github.io/mist-browser/");</script>
-<style>
-html,body{margin:0;height:100%;background:#0b0f1a;color:#e6e9f0;font-family:system-ui,"Segoe UI",Roboto,sans-serif}
-main{display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px;text-align:center}
-a{color:#7aa2ff}
-</style>
+<link rel="icon" id="siteFavicon" href="icons/favicon.png" type="image/png">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-<p>Redirecting to the secure version of Mist.Dev&hellip;<br>
-<a href="https://xavywaajhds.github.io/mist-browser/">Open Mist.Dev</a></p>
-</main>
+<div class="app">
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <img class="brand-icon" src="icons/home.png" alt="">
+      <div class="brand-text">
+        <div class="brand-name">Mist.Dev</div>
+        <div class="brand-sub">A game website made for Content Keeper.</div>
+      </div>
+    </div>
+
+    <div class="nav-items">
+      <button class="nav-item active" data-view="browser">
+        <img src="icons/home.png" alt="">
+        <span>Home</span>
+      </button>
+      <button class="nav-item" data-view="games">
+        <img src="icons/games.png" alt="">
+        <span>Games</span>
+        <span class="nav-badge" id="gameCount"></span>
+      </button>
+      <button class="nav-item" data-view="settings">
+        <img src="icons/settings.png" alt="">
+        <span>Settings</span>
+      </button>
+    </div>
+
+    <div class="sidebar-foot">Mist.Dev</div>
+  </nav>
+
+  <main class="main">
+    <!-- GAMES -->
+    <section class="view" id="view-games">
+      <header class="page-head">
+        <h1>Games</h1>
+        <div class="toolbar">
+          <input type="search" id="searchInput" placeholder="Search 800+ games..." autocomplete="off">
+          <select id="sortSelect">
+            <option value="default">Sort: Default</option>
+            <option value="az">Sort: A-Z</option>
+            <option value="za">Sort: Z-A</option>
+          </select>
+        </div>
+        <div class="chips" id="filterChips">
+          <button class="chip active" data-filter="all">All</button>
+          <button class="chip" data-filter="featured">Featured</button>
+        </div>
+      </header>
+      <div class="grid" id="gamesGrid"></div>
+      <div class="empty" id="gamesEmpty" hidden>No games match your search.</div>
+      <div class="loading" id="gamesLoading">Loading games...</div>
+    </section>
+
+    <!-- PLAYER -->
+    <section class="view player-view" id="view-player">
+      <div class="player-bar">
+        <button class="btn ghost" id="playerBack">&larr; Back</button>
+        <div class="player-title" id="playerTitle">Game</div>
+        <div class="player-actions">
+          <button class="btn ghost" id="playerReload" title="Reload">&#8635;</button>
+          <button class="btn ghost" id="playerFullPage" title="Play in full page">&#x2940; Full page</button>
+          <a class="btn ghost" id="playerPopout" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
+          <button class="btn primary" id="playerFull" title="Fullscreen">&#x26F6; Fullscreen</button>
+        </div>
+      </div>
+      <div class="player-frame-wrap">
+        <iframe id="gameFrame" tabindex="-1" allow="autoplay; fullscreen; pointer-lock; gamepad; keyboard-lock; clipboard-write; accelerometer; gyroscope" allowfullscreen></iframe>
+      </div>
+    </section>
+
+    <!-- BROWSER -->
+    <section class="view browser-view" id="view-browser">
+      <div class="browser-frame-wrap">
+        <canvas id="browserCanvas"></canvas>
+        <iframe id="browserFrame" title="Browser" hidden allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"></iframe>
+
+        <div class="browser-navbar home" id="browserNav">
+          <button class="btn ghost page-only" id="browserBack" title="Back" disabled>&#8592;</button>
+          <button class="btn ghost page-only" id="browserForward" title="Forward" disabled>&#8594;</button>
+          <button class="btn ghost page-only" id="browserReload" title="Reload">&#8635;</button>
+          <button class="btn ghost" id="browserHome" title="Home">&#8962;</button>
+          <a class="btn ghost page-only" id="browserOpen" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
+          <button class="btn ghost" id="browserExit" title="Exit browser">&#10005;</button>
+        </div>
+
+        <div class="browser-home" id="browserHomeView">
+          <h1 class="browser-logo">Mist.Dev</h1>
+          <div class="browser-search">
+            <input type="text" id="browserInput" placeholder="Search or enter a link..." autocomplete="off" spellcheck="false">
+            <button class="btn primary" id="browserGo">Go</button>
+          </div>
+          <div class="browser-shortcuts">
+            <button class="browser-shortcut" data-url="https://www.tiktok.com">
+              <img src="https://www.google.com/s2/favicons?domain=tiktok.com&amp;sz=64" alt="">
+              <span>TikTok</span>
+            </button>
+            <button class="browser-shortcut" data-url="https://www.youtube.com">
+              <img src="https://www.google.com/s2/favicons?domain=youtube.com&amp;sz=64" alt="">
+              <span>YouTube</span>
+            </button>
+            <button class="browser-shortcut" data-url="https://chatgpt.com">
+              <img src="https://www.google.com/s2/favicons?domain=chatgpt.com&amp;sz=64" alt="">
+              <span>ChatGPT</span>
+            </button>
+            <button class="browser-shortcut" data-url="https://discord.com/app">
+              <img src="https://www.google.com/s2/favicons?domain=discord.com&amp;sz=64" alt="">
+              <span>Discord</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="browser-status" id="browserLoading" hidden></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <header class="page-head">
+        <h1>Settings</h1>
+        <p class="page-sub">Personalize Mist.Dev. Settings save automatically on this device.</p>
+      </header>
+
+      <div class="settings-block">
+        <h2>Themes</h2>
+        <p class="block-sub">Pick one of 20 themes.</p>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
+
+      <div class="settings-block">
+        <h2>Tab Cloak</h2>
+        <p class="block-sub">Disguise this tab when it is not active so it looks like another site.</p>
+
+        <div class="field">
+          <label for="cloakSelect">Cloak</label>
+          <select id="cloakSelect"></select>
+        </div>
+
+        <div class="field">
+          <label for="cloakMode">When to cloak</label>
+          <select id="cloakMode">
+            <option value="inactive">When tab is not active (default)</option>
+            <option value="always">Always cloak</option>
+            <option value="off">Never cloak</option>
+          </select>
+        </div>
+
+        <div class="cloak-preview" id="cloakPreview">
+          <img id="cloakPreviewIcon" alt="" src="">
+          <span id="cloakPreviewTitle"></span>
+        </div>
+      </div>
+
+      <div class="settings-block">
+        <h2>Site</h2>
+        <div class="field">
+          <label for="defaultTab">Start tab</label>
+          <select id="defaultTab">
+            <option value="browser">Home</option>
+            <option value="games">Games</option>
+          </select>
+        </div>
+        <button class="btn danger" id="resetBtn">Reset all settings</button>
+      </div>
+
+      <div class="settings-block">
+        <h2>Browser</h2>
+        <p class="block-sub">The Home tab loads real websites through a self-hosted proxy app (no account needed) served securely over HTTPS. You can point this at your own deployed proxy app instead.</p>
+        <div class="field">
+          <label for="browserAppInput">Browser app URL</label>
+          <input type="text" id="browserAppInput" placeholder="browser/" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="block-sub">Clear this to fall back to the simple CORS proxies below, which only fetch page text.</p>
+      </div>
+
+      <div class="settings-block">
+        <h2>Browser Proxy (fallback)</h2>
+        <p class="block-sub">The Browser tab fetches pages through a proxy so sites that block being embedded still load. Public proxies are tried automatically, but they are unreliable. For a proxy that always works, deploy the included Cloudflare Worker &mdash; it is free, needs no install, and works on any device (including Chromebooks).</p>
+        <p class="block-sub">Deploy it in about 2 minutes, all in your browser:</p>
+        <p class="block-sub">
+          1. Sign in at <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> (free).<br>
+          2. Go to <b>Workers &amp; Pages &rarr; Create &rarr; Create Worker</b>.<br>
+          3. Delete the sample code, paste the contents of <code>proxy/worker.js</code>, then click <b>Deploy</b>.<br>
+          4. Copy your worker URL (e.g. <code>https://mist-proxy.you.workers.dev</code>) and paste it below.
+        </p>
+        <div class="field">
+          <label for="proxyInput">Proxy URL</label>
+          <input type="text" id="proxyInput" placeholder="https://your-worker.workers.dev/?url=" autocomplete="off" spellcheck="false">
+        </div>
+        <p class="block-sub">Enter it as <code>https://your-worker.workers.dev/?url=</code>, or use <code>%s</code> as the placeholder for the target URL. Leave it empty to use the public proxies. On a PC you can instead run the bundled proxy with <code>cd proxy &amp;&amp; dotnet run</code> and enter <code>http://localhost:8787/?url=</code>.</p>
+      </div>
+
+      <div class="settings-block">
+        <h2>About</h2>
+        <p class="block-sub">Mist.Dev &mdash; A game website made for Content Keeper.<br>
+        Games served from the gn-math open game library.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>

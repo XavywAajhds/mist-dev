@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>Browser</title>
+<link rel="stylesheet" href="index.css">
+<script src="config.js"></script>
+<script src="scram/scramjet.all.js"></script>
+<script src="baremux/index.js"></script>
+<script src="register-sw.js" defer></script>
+<script src="search.js" defer></script>
+<script src="index.js" defer></script>
+</head>
+<body>
+<p class="left-margin" style="color:#fff;font-weight:500;margin-top:24px" id="sj-loading">Starting browser…</p>
+<form id="sj-form" class="flex-center" style="margin-top:4vh">
+<input id="sj-address" type="text" placeholder="Search the web or enter a link" autocomplete="off" spellcheck="false" />
+</form>
+<div class="desc left-margin">
+<p id="sj-error"></p>
+<pre id="sj-error-code"></pre>
+</div>
+</body>
+</html>
