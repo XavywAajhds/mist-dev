@@ -1,0 +1,4 @@
+# .NET build output
+proxy/bin/
+proxy/obj/
+*.user

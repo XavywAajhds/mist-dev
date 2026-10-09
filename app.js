@@ -14,11 +14,12 @@
   const COVER_FALLBACK = "https://cdn.jsdelivr.net/gh/gn-math/covers@main/";
 
   /* ---------- Settings ---------- */
-  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "home", proxy: "" };
+  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "home", proxy: "http://localhost:8787/?url=" };
   let settings = Object.assign({}, defaults);
   try {
     Object.assign(settings, JSON.parse(localStorage.getItem(LS) || "{}"));
   } catch (e) {}
+  if (!settings.proxy) settings.proxy = defaults.proxy;
   function save() {
     localStorage.setItem(LS, JSON.stringify(settings));
   }
@@ -556,6 +557,7 @@
     if (currentBrowserUrl) loadBrowserUrl(currentBrowserUrl, false);
   });
   $("#browserHome").addEventListener("click", showBrowserHome);
+  $("#browserExit").addEventListener("click", () => showView("games"));
   $$(".browser-shortcut").forEach((btn) => {
     btn.addEventListener("click", () => {
       const url = btn.dataset.url;
