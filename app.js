@@ -14,13 +14,14 @@
   const COVER_FALLBACK = "https://cdn.jsdelivr.net/gh/gn-math/covers@main/";
 
   /* ---------- Settings ---------- */
-  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "", browserApp: "" };
+  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "", browserApp: "/browser/" };
   let settings = Object.assign({}, defaults);
   try {
     Object.assign(settings, JSON.parse(localStorage.getItem(LS) || "{}"));
   } catch (e) {}
   if (!settings.proxy) settings.proxy = defaults.proxy;
   if (settings.proxy === "http://localhost:8787/?url=") settings.proxy = "";
+  if (!settings.browserApp) settings.browserApp = defaults.browserApp;
   function save() {
     localStorage.setItem(LS, JSON.stringify(settings));
   }
