@@ -80,55 +80,68 @@
     <!-- BROWSER -->
     <section class="view browser-view" id="view-browser">
       <div class="browser-frame-wrap">
-        <canvas id="browserCanvas"></canvas>
-        <iframe id="browserFrame" title="Browser" hidden allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"></iframe>
-
-        <div class="browser-navbar home" id="browserNav">
-          <button class="btn ghost page-only" id="browserBack" title="Back" disabled>&#8592;</button>
-          <button class="btn ghost page-only" id="browserForward" title="Forward" disabled>&#8594;</button>
-          <button class="btn ghost page-only" id="browserReload" title="Reload">&#8635;</button>
-          <button class="btn ghost" id="browserHome" title="Home">&#8962;</button>
-          <a class="btn ghost page-only" id="browserOpen" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
-          <button class="btn ghost" id="browserExit" title="Exit browser">&#10005;</button>
+        <div class="browser-tabs" id="browserTabs">
+          <div class="browser-tab-list" id="browserTabList"></div>
+          <button class="browser-tab-add" id="browserTabAdd" title="New tab" aria-label="New tab">+</button>
         </div>
 
-        <div class="browser-home" id="browserHomeView">
-          <h1 class="browser-logo">Mist.Dev</h1>
-          <a class="browser-discord" href="https://discord.gg/5uGp5j3jNS" target="_blank" rel="noopener">Join our Discord</a>
-          <div class="browser-search">
-            <input type="text" id="browserInput" placeholder="Search or enter a link..." autocomplete="off" spellcheck="false">
+        <div class="browser-toolbar home" id="browserNav">
+          <button class="tbtn page-only" id="browserBack" title="Back" type="button" disabled>&#8592;</button>
+          <button class="tbtn page-only" id="browserForward" title="Forward" type="button" disabled>&#8594;</button>
+          <button class="tbtn page-only" id="browserReload" title="Reload" type="button">&#8635;</button>
+          <button class="tbtn" id="browserHome" title="Home" type="button">&#8962;</button>
+          <form class="browser-omnibox" id="browserOmniboxForm" autocomplete="off">
+            <input id="browserOmnibox" type="text" placeholder="Search or enter a link..." autocomplete="off" spellcheck="false">
+          </form>
+          <a class="tbtn page-only" id="browserOpen" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
+          <button class="tbtn" id="browserExit" title="Exit browser" type="button">&#10005;</button>
+        </div>
+
+        <div class="browser-stage">
+          <canvas id="browserCanvas"></canvas>
+          <iframe id="browserFrame" title="Browser" hidden allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"></iframe>
+
+          <div class="browser-home" id="browserHomeView">
+            <h1 class="browser-logo">Mist.Dev</h1>
+            <a class="browser-discord" href="https://discord.gg/5uGp5j3jNS" target="_blank" rel="noopener">Join our Discord</a>
+            <div class="browser-search">
+              <input type="text" id="browserInput" placeholder="Search or enter a link..." autocomplete="off" spellcheck="false">
+            </div>
+          <div class="browser-actions">
             <button class="btn primary" id="browserGo">Go</button>
+            <button class="btn ghost" id="browserRandom">Random</button>
           </div>
-          <div class="browser-shortcuts">
-            <button class="browser-shortcut" data-url="https://www.tiktok.com">
-              <img src="https://www.google.com/s2/favicons?domain=tiktok.com&amp;sz=64" alt="">
-              <span>TikTok</span>
-            </button>
-            <button class="browser-shortcut" data-url="https://www.youtube.com">
-              <img src="https://www.google.com/s2/favicons?domain=youtube.com&amp;sz=64" alt="">
-              <span>YouTube</span>
-            </button>
-            <button class="browser-shortcut" data-url="https://chatgpt.com">
-              <img src="https://www.google.com/s2/favicons?domain=chatgpt.com&amp;sz=64" alt="">
-              <span>ChatGPT</span>
-            </button>
-            <button class="browser-shortcut" data-url="https://discord.com/app">
-              <img src="https://www.google.com/s2/favicons?domain=discord.com&amp;sz=64" alt="">
-              <span>Discord</span>
-            </button>
-            <button class="browser-shortcut" data-url="https://now.gg">
-              <img src="https://www.google.com/s2/favicons?domain=now.gg&amp;sz=64" alt="">
-              <span>now.gg</span>
-            </button>
-            <button class="browser-shortcut" data-url="https://github.com">
-              <img src="https://www.google.com/s2/favicons?domain=github.com&amp;sz=64" alt="">
-              <span>GitHub</span>
-            </button>
+            <div class="browser-shortcuts">
+              <button class="browser-shortcut" data-url="https://www.tiktok.com">
+                <img src="https://www.google.com/s2/favicons?domain=tiktok.com&amp;sz=64" alt="">
+                <span>TikTok</span>
+              </button>
+              <button class="browser-shortcut" data-url="https://www.youtube.com">
+                <img src="https://www.google.com/s2/favicons?domain=youtube.com&amp;sz=64" alt="">
+                <span>YouTube</span>
+              </button>
+              <button class="browser-shortcut" data-url="https://chatgpt.com">
+                <img src="https://www.google.com/s2/favicons?domain=chatgpt.com&amp;sz=64" alt="">
+                <span>ChatGPT</span>
+              </button>
+              <button class="browser-shortcut" data-url="https://discord.com/app">
+                <img src="https://www.google.com/s2/favicons?domain=discord.com&amp;sz=64" alt="">
+                <span>Discord</span>
+              </button>
+              <button class="browser-shortcut" data-url="https://now.gg">
+                <img src="https://www.google.com/s2/favicons?domain=now.gg&amp;sz=64" alt="">
+                <span>now.gg</span>
+              </button>
+              <button class="browser-shortcut" data-url="https://github.com">
+                <img src="https://www.google.com/s2/favicons?domain=github.com&amp;sz=64" alt="">
+                <span>GitHub</span>
+              </button>
+            </div>
+
           </div>
 
+          <div class="browser-status" id="browserLoading" hidden></div>
         </div>
-
-        <div class="browser-status" id="browserLoading" hidden></div>
       </div>
     </section>
 
@@ -186,7 +199,7 @@
         <p class="block-sub">The Home tab loads real websites through a self-hosted proxy app (no account needed) served securely over HTTPS. You can point this at your own deployed proxy app instead.</p>
         <div class="field">
           <label for="browserAppInput">Browser app URL</label>
-          <input type="text" id="browserAppInput" placeholder="browser/" autocomplete="off" spellcheck="false">
+          <input type="text" id="browserAppInput" placeholder="browser/index.html" autocomplete="off" spellcheck="false">
         </div>
         <p class="block-sub">Clear this to fall back to the simple CORS proxies below, which only fetch page text.</p>
       </div>

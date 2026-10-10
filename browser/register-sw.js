@@ -11,12 +11,10 @@ const swAllowedHostnames = ["localhost", "127.0.0.1"];
  */
 async function registerSW() {
 	if (!navigator.serviceWorker) {
-		if (
-			location.protocol !== "https:" &&
-			!swAllowedHostnames.includes(location.hostname)
-		)
-			throw new Error("Service workers require https://");
 		throw new Error("Service workers are not supported");
+	}
+	if (location.protocol !== "https:" && !swAllowedHostnames.includes(location.hostname)) {
+		throw new Error("Service workers require https://");
 	}
 	await navigator.serviceWorker.register(stockSW);
 }

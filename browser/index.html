@@ -13,13 +13,31 @@
 <script src="index.js" defer></script>
 </head>
 <body>
-<p class="left-margin" style="color:#fff;font-weight:500;margin-top:24px" id="sj-loading">Starting browser…</p>
-<form id="sj-form" class="flex-center" style="margin-top:4vh">
-<input id="sj-address" type="text" placeholder="Search the web or enter a link" autocomplete="off" spellcheck="false" />
-</form>
-<div class="desc left-margin">
-<p id="sj-error"></p>
-<pre id="sj-error-code"></pre>
-</div>
+  <div class="toolbar" id="toolbar">
+    <button class="tbtn" id="backBtn" title="Back" type="button" disabled>&#8592;</button>
+    <button class="tbtn" id="fwdBtn" title="Forward" type="button" disabled>&#8594;</button>
+    <button class="tbtn" id="reloadBtn" title="Reload" type="button">&#8635;</button>
+    <button class="tbtn" id="homeBtn" title="Home" type="button">&#8962;</button>
+    <form id="sj-form" class="omnibox" autocomplete="off">
+      <input id="sj-address" type="text" placeholder="Search the web or enter a link" autocomplete="off" spellcheck="false" />
+      <button class="go" id="goBtn" type="submit">Go</button>
+    </form>
+    <a class="tbtn" id="popoutBtn" target="_blank" rel="noopener" title="Open in new tab" hidden>&#8599;</a>
+    <button class="tbtn danger" id="exitBtn" title="Close browser" type="button">&#10005;</button>
+  </div>
+
+  <main class="stage" id="stage">
+    <section class="landing" id="landing">
+      <h1 class="logo-text">Mist.Dev</h1>
+      <p class="tagline">Search the web or paste a link into the bar above.</p>
+    </section>
+    <div class="frame-holder" id="frameHolder" hidden></div>
+  </main>
+
+  <div class="status" id="status" hidden></div>
+  <div class="errorbox" id="errorbox" hidden>
+    <p id="sj-error"></p>
+    <pre id="sj-error-code"></pre>
+  </div>
 </body>
 </html>

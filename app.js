@@ -14,14 +14,14 @@
   const COVER_FALLBACK = "https://cdn.jsdelivr.net/gh/gn-math/covers@main/";
 
   /* ---------- Settings ---------- */
-  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "", browserApp: "browser/" };
+  const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "", browserApp: "browser/index.html" };
   let settings = Object.assign({}, defaults);
   try {
     Object.assign(settings, JSON.parse(localStorage.getItem(LS) || "{}"));
   } catch (e) {}
   if (!settings.proxy) settings.proxy = defaults.proxy;
   if (settings.proxy === "http://localhost:8787/?url=") settings.proxy = "";
-  if (!settings.browserApp || settings.browserApp === "/browser/" || settings.browserApp === "https://xavywaajhds.github.io/mist-browser/") settings.browserApp = defaults.browserApp;
+  if (!settings.browserApp || settings.browserApp === "/browser/" || settings.browserApp === "browser/" || settings.browserApp === "https://xavywaajhds.github.io/mist-browser/") settings.browserApp = defaults.browserApp;
   function save() {
     localStorage.setItem(LS, JSON.stringify(settings));
   }
@@ -89,11 +89,14 @@
     if (name === "games") setTimeout(() => $("#searchInput").focus({ preventScroll: true }), 50);
     if (name === "browser") {
       setTimeout(() => {
-        if (currentBrowserUrl) showBrowserPage();
+        if (!browserTabs.length) newTab();
+        const tab = activeTab();
+        if (tab && tab.url) showBrowserPage();
         else showBrowserHome();
         bgResize();
         startBg();
-        $("#browserInput").focus({ preventScroll: true });
+        const focusEl = tab && tab.url ? $("#browserOmnibox") : $("#browserInput");
+        focusEl.focus({ preventScroll: true });
       }, 50);
     } else {
       stopBg();
@@ -379,9 +382,10 @@
   });
 
   /* ---------- Browser (BETA) ---------- */
-  let browserHistory = [];
-  let browserIndex = -1;
-  let currentBrowserUrl = "";
+  let browserTabs = [];
+  let activeTabId = null;
+  let tabSeq = 0;
+  let usingAppBrowser = false;
 
   // CORS proxies used to pull a page's HTML so it can be rendered from srcdoc,
   // which sidesteps the X-Frame-Options / frame-ancestors blocks that stop
@@ -458,8 +462,110 @@
   }
 
   function updateBrowserButtons() {
-    $("#browserBack").disabled = browserIndex <= 0;
-    $("#browserForward").disabled = browserIndex >= browserHistory.length - 1;
+    const tab = activeTab();
+    $("#browserBack").disabled = !tab || tab.index <= 0;
+    $("#browserForward").disabled = !tab || tab.index >= tab.history.length - 1;
+  }
+
+  /* ---------- Browser tabs ---------- */
+  function activeTab() {
+    return browserTabs.find((t) => t.id === activeTabId) || null;
+  }
+
+  function tabHost(url) {
+    try {
+      return new URL(url).hostname.replace(/^www\./i, "");
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function tabTitleForUrl(url) {
+    if (isSearchUrl(url)) return "Google Search";
+    return tabHost(url) || url;
+  }
+
+  function faviconForUrl(url) {
+    const host = tabHost(url);
+    return host
+      ? "https://www.google.com/s2/favicons?domain=" + host + "&sz=64"
+      : "icons/globe.png";
+  }
+
+  function renderBrowserTabs() {
+    const list = $("#browserTabList");
+    list.innerHTML = "";
+    browserTabs.forEach((tab) => {
+      const el = document.createElement("div");
+      el.className = "browser-tab" + (tab.id === activeTabId ? " active" : "");
+      el.dataset.id = tab.id;
+      el.innerHTML =
+        '<img class="browser-tab-icon" alt="">' +
+        '<div class="browser-tab-text">' +
+        '<span class="browser-tab-title"></span>' +
+        '<span class="browser-tab-url"></span>' +
+        "</div>" +
+        '<button class="browser-tab-close" title="Close tab">&times;</button>';
+      const icon = el.querySelector(".browser-tab-icon");
+      icon.addEventListener("error", function onErr() {
+        icon.removeEventListener("error", onErr);
+        icon.src = "icons/globe.png";
+      });
+      icon.src = tab.url ? faviconForUrl(tab.url) : "icons/globe.png";
+      el.querySelector(".browser-tab-title").textContent = tab.title || "New Tab";
+      el.querySelector(".browser-tab-url").textContent = tab.url || "Home";
+      el.addEventListener("click", (e) => {
+        if (e.target.closest(".browser-tab-close")) return;
+        activateTab(tab.id);
+      });
+      el.querySelector(".browser-tab-close").addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeTab(tab.id);
+      });
+      list.appendChild(el);
+    });
+  }
+
+  function createTab(url, title) {
+    const tab = { id: ++tabSeq, url: url || "", title: title || "", history: [], index: -1 };
+    browserTabs.push(tab);
+    return tab;
+  }
+
+  function newTab() {
+    const tab = createTab();
+    activeTabId = tab.id;
+    renderBrowserTabs();
+    showBrowserHome();
+    $("#browserInput").focus({ preventScroll: true });
+  }
+
+  function activateTab(id) {
+    if (id === activeTabId) return;
+    activeTabId = id;
+    renderBrowserTabs();
+    const tab = activeTab();
+    if (!tab) return;
+    if (tab.url) loadBrowserUrl(tab.url, false);
+    else showBrowserHome();
+  }
+
+  function closeTab(id) {
+    const idx = browserTabs.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    const wasActive = id === activeTabId;
+    browserTabs.splice(idx, 1);
+    if (!browserTabs.length) {
+      newTab();
+      return;
+    }
+    if (wasActive) {
+      activeTabId = browserTabs[Math.min(idx, browserTabs.length - 1)].id;
+      const tab = activeTab();
+      if (tab.url) loadBrowserUrl(tab.url, false);
+      else showBrowserHome();
+    }
+    renderBrowserTabs();
   }
 
   function showBrowserStatus(msg) {
@@ -469,12 +575,22 @@
   }
 
   function showBrowserHome() {
+    const tab = activeTab();
+    if (tab) {
+      tab.url = "";
+      tab.title = "";
+      tab.history = [];
+      tab.index = -1;
+    }
     $("#browserFrame").hidden = true;
     $("#browserNav").hidden = false;
     $("#browserNav").classList.add("home");
     $("#browserHomeView").hidden = false;
     showBrowserStatus("");
-    currentBrowserUrl = "";
+    renderBrowserTabs();
+    updateBrowserButtons();
+    $("#browserInput").value = "";
+    $("#browserOmnibox").value = ""; $("#browserInput").value = ""; $("#browserInput").value = "";
   }
 
   function showBrowserPage() {
@@ -486,13 +602,19 @@
 
   async function loadBrowserUrl(url, pushHistory) {
     if (!url) return;
-    currentBrowserUrl = url;
+    const tab = activeTab();
+    if (!tab) return;
+    tab.url = url;
+    tab.title = tabTitleForUrl(url);
+    $("#browserInput").value = url; $("#browserOmnibox").value = url; $("#browserOmnibox").value = url;
+    $("#browserOmnibox").value = url;
     $("#browserOpen").href = url;
     if (pushHistory) {
-      browserHistory = browserHistory.slice(0, browserIndex + 1);
-      browserHistory.push(url);
-      browserIndex = browserHistory.length - 1;
+      tab.history = tab.history.slice(0, tab.index + 1);
+      tab.history.push(url);
+      tab.index = tab.history.length - 1;
     }
+    renderBrowserTabs();
     updateBrowserButtons();
     showBrowserPage();
 
@@ -500,6 +622,7 @@
 
     // A self-hosted proxy app (Settings -> Browser) handles everything itself.
     const appUrl = browserAppUrl(url);
+    usingAppBrowser = !!appUrl;
     if (appUrl) {
       frame.removeAttribute("srcdoc");
       frame.src = appUrl;
@@ -517,7 +640,20 @@
     }
 
     // Everything else: fetch the HTML through a proxy and render it ourselves.
+    const localHint =
+      location.protocol === "file:"
+        ? " Serve this folder over http (e.g. python -m http.server) to enable the embedded browser."
+        : "";
     showBrowserStatus("Loading " + url + " ...");
+    // Opened from disk: cross-origin fetch is blocked, so go straight to a
+    // plain iframe instead of waiting on proxies that cannot answer.
+    if (location.protocol === "file:") {
+      frame.removeAttribute("srcdoc");
+      frame.src = url;
+      showBrowserStatus("Loaded directly." + localHint);
+      setTimeout(() => showBrowserStatus(""), 4000);
+      return;
+    }
     try {
       const html = await fetchPageViaProxy(url);
       frame.removeAttribute("src");
@@ -527,7 +663,7 @@
       // Fall back to a plain iframe in case the proxy is down.
       frame.removeAttribute("srcdoc");
       frame.src = url;
-      showBrowserStatus("Loaded directly (proxy unavailable). Some sites may refuse to display.");
+      showBrowserStatus("Loaded directly (proxy unavailable)." + localHint + " Some sites may refuse to display.");
       setTimeout(() => showBrowserStatus(""), 4000);
     }
   }
@@ -535,6 +671,10 @@
   function browserAppUrl(url) {
     const base = (settings.browserApp || "").trim();
     if (!base) return "";
+    // Opened straight from disk (file://): the app cannot run there (service
+    // workers need http/https), and a directory URL would just show a raw
+    // file listing. Fall through to the plain-proxy renderer instead.
+    if (location.protocol === "file:") return "";
     // A same-origin app needs a secure context (service workers). An absolute
     // https app works even when this page itself is served over http.
     const absoluteHttps = /^https:\/\//i.test(base);
@@ -542,42 +682,79 @@
     return base + (base.indexOf("?") >= 0 ? "&" : "?") + "url=" + encodeURIComponent(url);
   }
 
-  function browserGo() {
-    const url = resolveBrowserUrl($("#browserInput").value);
+  function browserGo(source) {
+    const input = source === "home" ? $("#browserInput") : $("#browserOmnibox");
+    const url = resolveBrowserUrl(input.value);
     if (!url) return;
-    $("#browserInput").value = url;
     loadBrowserUrl(url, true);
   }
 
-  $("#browserGo").addEventListener("click", browserGo);
+  $("#browserGo").addEventListener("click", () => browserGo("home"));
+  $("#browserRandom").addEventListener("click", () => {
+    const shortcuts = $$(".browser-shortcut");
+    if (!shortcuts.length) return;
+    const pick = shortcuts[Math.floor(Math.random() * shortcuts.length)];
+    loadBrowserUrl(pick.dataset.url, true);
+  });
+  $("#browserOmniboxForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    browserGo();
+  });
   $("#browserInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") browserGo();
+    if (e.key === "Enter") browserGo("home");
   });
   $("#browserBack").addEventListener("click", () => {
-    if (browserIndex > 0) {
-      browserIndex--;
-      $("#browserInput").value = browserHistory[browserIndex];
-      loadBrowserUrl(browserHistory[browserIndex], false);
+    const tab = activeTab();
+    if (tab && tab.index > 0) {
+      tab.index--;
+      loadBrowserUrl(tab.history[tab.index], false);
     }
   });
   $("#browserForward").addEventListener("click", () => {
-    if (browserIndex < browserHistory.length - 1) {
-      browserIndex++;
-      $("#browserInput").value = browserHistory[browserIndex];
-      loadBrowserUrl(browserHistory[browserIndex], false);
+    const tab = activeTab();
+    if (tab && tab.index < tab.history.length - 1) {
+      tab.index++;
+      loadBrowserUrl(tab.history[tab.index], false);
     }
   });
   $("#browserReload").addEventListener("click", () => {
-    if (currentBrowserUrl) loadBrowserUrl(currentBrowserUrl, false);
+    const tab = activeTab();
+    if (!tab || !tab.url) return;
+    // The embedded app owns its own frame history; a reload there must not
+    // restart the whole app.
+    if (usingAppBrowser) {
+      const frame = $("#browserFrame");
+      if (frame && frame.contentWindow) frame.contentWindow.postMessage({ mist: "reload" }, "*");
+      return;
+    }
+    loadBrowserUrl(tab.url, false);
   });
   $("#browserHome").addEventListener("click", showBrowserHome);
   $("#browserExit").addEventListener("click", () => showView("games"));
+  $("#browserTabAdd").addEventListener("click", newTab);
   $$(".browser-shortcut").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const url = btn.dataset.url;
-      $("#browserInput").value = url;
-      loadBrowserUrl(url, true);
-    });
+    btn.addEventListener("click", () => loadBrowserUrl(btn.dataset.url, true));
+  });
+
+  // Messages from the embedded browser app (browser/): it has its own toolbar,
+  // so its omnibox keeps the active tab's URL in sync and its close button
+  // exits back to Games.
+  window.addEventListener("message", (e) => {
+    const d = e.data;
+    if (!d || typeof d !== "object" || !d.mist) return;
+    if (d.mist === "exit") {
+      showView("games");
+    } else if (d.mist === "home") {
+      showBrowserHome();
+    } else if (d.mist === "navigate" && typeof d.url === "string") {
+      const tab = activeTab();
+      if (!tab) return;
+      tab.url = d.url;
+      tab.title = tabTitleForUrl(d.url);
+      $("#browserInput").value = d.url;
+      $("#browserOmnibox").value = d.url;
+      renderBrowserTabs();
+    }
   });
 
   /* ---------- Browser background (dot network) ---------- */
@@ -796,6 +973,7 @@
     settings.browserApp = e.target.value.trim();
     save();
   });
+  if (!browserTabs.length) newTab();
   showView(settings.defaultTab === "games" ? "games" : "browser");
   document.title = REAL_TITLE;
   loadGames();
