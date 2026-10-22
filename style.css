@@ -400,11 +400,15 @@ button, input, select { font: inherit; color: inherit; }
 /* ============ Browser ============ */
 .browser-view { display: none; }
 .browser-view.active {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
+  /* Sits in the flow next to the sidebar so the sidebar never covers the page. */
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 86px);
+  min-height: 440px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
   background: var(--bg);
 }
 .browser-frame-wrap {
@@ -620,7 +624,6 @@ button, input, select { font: inherit; color: inherit; }
   transition: border-color var(--transition);
 }
 .browser-search #browserInput:focus { border-color: var(--primary); }
-.browser-actions { display: flex; gap: 10px; justify-content: center; }
 .browser-shortcuts { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
 .browser-shortcut {
   display: flex;
@@ -715,6 +718,7 @@ button, input, select { font: inherit; color: inherit; }
   .sidebar-foot { display: none; }
   .main { padding-top: 18px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+  .browser-view.active { height: calc(100vh - 140px); min-height: 360px; }
   .player-view.active { height: calc(100vh - 120px); }
   .player-frame-wrap { min-height: 320px; }
 }

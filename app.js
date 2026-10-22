@@ -53,6 +53,7 @@
   /* ---------- Cloaks ---------- */
   const CLOAKS = [
     { id: "google", name: "Google (default)", title: "Google", icon: "https://www.google.com/favicon.ico" },
+    { id: "blank", name: "About:Blank", title: "about:blank", icon: "icons/blank.png" },
     { id: "youtube", name: "YouTube", title: "YouTube", icon: "https://www.youtube.com/favicon.ico" },
     { id: "github", name: "GitHub", title: "GitHub", icon: "https://github.com/favicon.ico" },
     { id: "classroom", name: "Google Classroom", title: "Google Classroom", icon: "https://classroom.google.com/favicon.ico" },
@@ -689,13 +690,6 @@
     loadBrowserUrl(url, true);
   }
 
-  $("#browserGo").addEventListener("click", () => browserGo("home"));
-  $("#browserRandom").addEventListener("click", () => {
-    const shortcuts = $$(".browser-shortcut");
-    if (!shortcuts.length) return;
-    const pick = shortcuts[Math.floor(Math.random() * shortcuts.length)];
-    loadBrowserUrl(pick.dataset.url, true);
-  });
   $("#browserOmniboxForm").addEventListener("submit", (event) => {
     event.preventDefault();
     browserGo();
@@ -774,17 +768,7 @@
     return [109, 141, 255];
   }
 
-  function bgResize() {
-    if (!bgCanvas) return;
-    const rect = bgCanvas.parentElement.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    bgW = rect.width;
-    bgH = rect.height;
-    bgCanvas.width = Math.max(1, Math.round(bgW * dpr));
-    bgCanvas.height = Math.max(1, Math.round(bgH * dpr));
-    bgCanvas.style.width = bgW + "px";
-    bgCanvas.style.height = bgH + "px";
-    bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  function seedBgDots() {
     const count = Math.max(24, Math.min(110, Math.round((bgW * bgH) / 13000)));
     bgDots = [];
     for (let i = 0; i < count; i++) {
@@ -798,7 +782,27 @@
     }
   }
 
+  function bgResize() {
+    if (!bgCanvas) return;
+    const rect = bgCanvas.parentElement.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(rect.width);
+    const h = Math.round(rect.height);
+    if (w === bgW && h === bgH) return;
+    bgW = w;
+    bgH = h;
+    // The canvas is sized by CSS (100% of the stage); only the backing store
+    // is set here so it stays sharp on any zoom level.
+    bgCanvas.width = Math.max(1, Math.round(w * dpr));
+    bgCanvas.height = Math.max(1, Math.round(h * dpr));
+    bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!bgDots.length) seedBgDots();
+  }
+
   function bgStep() {
+    // The stage changes size when the sidebar opens, so keep the canvas fitted.
+    bgResize();
     if (!bgW || !bgH) {
       bgRAF = requestAnimationFrame(bgStep);
       return;
@@ -875,6 +879,15 @@
   window.addEventListener("resize", () => {
     if (currentView === "browser") bgResize();
   });
+
+  // The sidebar expands over the main column, which changes the stage size
+  // without a window resize, so watch the stage and keep the canvas fitted.
+  if (window.ResizeObserver) {
+    const bgRO = new ResizeObserver(() => {
+      if (currentView === "browser") bgResize();
+    });
+    bgRO.observe(bgCanvas.parentElement);
+  }
 
   /* ---------- Load games ---------- */
   async function fetchJson(urls) {
