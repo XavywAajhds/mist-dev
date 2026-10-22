@@ -4,6 +4,7 @@
   --radius-sm: 9px;
   --sidebar-w: 250px;
   --transition: 0.18s ease;
+  --mobile-bar-h: 63px;
 }
 
 * { box-sizing: border-box; }
@@ -124,6 +125,8 @@ button, input, select { font: inherit; color: inherit; }
 
 /* ============ Layout ============ */
 .app { display: flex; min-height: 100vh; }
+/* The browser page fills the whole area next to the sidebar, edge to edge. */
+.app.browser-mode .main { padding: 0; }
 
 .sidebar {
   width: var(--sidebar-w);
@@ -314,7 +317,7 @@ button, input, select { font: inherit; color: inherit; }
 
 /* ============ Player ============ */
 .player-view { display: none; }
-.player-view.active { display: flex; flex-direction: column; height: calc(100vh - 40px); }
+.player-view.active { display: flex; flex-direction: column; height: calc(100vh - 86px); }
 .player-bar {
   display: flex;
   align-items: center;
@@ -404,10 +407,8 @@ button, input, select { font: inherit; color: inherit; }
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100vh - 86px);
-  min-height: 440px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  height: 100vh;
+  min-height: 320px;
   overflow: hidden;
   background: var(--bg);
 }
@@ -718,7 +719,8 @@ button, input, select { font: inherit; color: inherit; }
   .sidebar-foot { display: none; }
   .main { padding-top: 18px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
-  .browser-view.active { height: calc(100vh - 140px); min-height: 360px; }
+  /* The top bar of the sidebar takes up the space above the browser page. */
+  .app.browser-mode .browser-view.active { height: calc(100vh - var(--mobile-bar-h)); }
   .player-view.active { height: calc(100vh - 120px); }
   .player-frame-wrap { min-height: 320px; }
 }

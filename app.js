@@ -86,6 +86,8 @@
     const el = $("#view-" + name);
     if (el) el.classList.add("active");
     $$(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
+    // The browser page takes over the whole area next to the sidebar.
+    $(".app").classList.toggle("browser-mode", name === "browser");
     if (name !== "player") window.scrollTo(0, 0);
     if (name === "games") setTimeout(() => $("#searchInput").focus({ preventScroll: true }), 50);
     if (name === "browser") {
