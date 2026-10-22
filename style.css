@@ -664,6 +664,43 @@ button, input, select { font: inherit; color: inherit; }
 }
 .browser-note { color: var(--muted); font-size: 12.5px; margin: 10px 2px 0; }
 
+.browser-notice {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+}
+.browser-notice[hidden] { display: none; }
+.browser-notice-text { flex: 1; min-width: 0; }
+.browser-notice-link { color: var(--primary); text-decoration: none; white-space: nowrap; font-weight: 600; }
+.browser-notice-link:hover { text-decoration: underline; }
+.browser-notice-close {
+  flex: none;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.browser-notice-close:hover { color: var(--text); }
+@media (max-width: 860px) {
+  .browser-notice { flex-wrap: wrap; }
+  .browser-notice-text { flex-basis: 100%; }
+}
+
 /* ============ Responsive ============ */
 @media (min-width: 861px) {
   .sidebar {

@@ -12,6 +12,11 @@
   ];
   const HTML_BASE = "https://raw.githubusercontent.com/gn-math/html/main/";
   const COVER_FALLBACK = "https://cdn.jsdelivr.net/gh/gn-math/covers@main/";
+  // The embedded browser (service worker + Scramjet) only runs in a secure
+  // context, and a secure context needs https on the whole page chain. When
+  // the site is served over plain http the pages are loaded through the
+  // built-in proxy instead and this link offers the https deployment.
+  const SECURE_SITE_URL = "https://xavywaajhds.github.io/mist-browser/";
 
   /* ---------- Settings ---------- */
   const defaults = { theme: "midnight", cloak: "google", cloakMode: "inactive", defaultTab: "browser", proxy: "", browserApp: "browser/index.html" };
@@ -21,7 +26,12 @@
   } catch (e) {}
   if (!settings.proxy) settings.proxy = defaults.proxy;
   if (settings.proxy === "http://localhost:8787/?url=") settings.proxy = "";
-  if (!settings.browserApp || settings.browserApp === "/browser/" || settings.browserApp === "browser/" || settings.browserApp === "https://xavywaajhds.github.io/mist-browser/") settings.browserApp = defaults.browserApp;
+  if (!settings.browserApp) settings.browserApp = defaults.browserApp;
+  else {
+    const app = settings.browserApp.trim();
+    if (app === "/browser/" || app === "browser/") settings.browserApp = defaults.browserApp;
+    else settings.browserApp = app;
+  }
   function save() {
     localStorage.setItem(LS, JSON.stringify(settings));
   }
@@ -101,6 +111,7 @@
         const focusEl = tab && tab.url ? $("#browserOmnibox") : $("#browserInput");
         focusEl.focus({ preventScroll: true });
       }, 50);
+      updateBrowserNotice();
     } else {
       stopBg();
     }
@@ -394,12 +405,13 @@
   // which sidesteps the X-Frame-Options / frame-ancestors blocks that stop
   // normal iframe embedding. A custom proxy (set in Settings) is tried first.
   const BUILTIN_PROXIES = [
-    (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
-    (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u),
-    (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
-    (u) => "https://api.cors.lol/?url=" + encodeURIComponent(u),
-    (u) => "https://cors.eu.org/" + u,
-    (u) => "https://thingproxy.freeboard.io/fetch/" + u,
+    { build: (u) => "https://api.allorigins.win/get?url=" + encodeURIComponent(u), json: true },
+    { build: (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u) },
+    { build: (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u) },
+    { build: (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u) },
+    { build: (u) => "https://api.cors.lol/?url=" + encodeURIComponent(u) },
+    { build: (u) => "https://cors.eu.org/" + u },
+    { build: (u) => "https://thingproxy.freeboard.io/fetch/" + u },
   ];
 
   function browserProxies() {
@@ -407,7 +419,7 @@
     const custom = (settings.proxy || "").trim();
     if (custom) {
       // "%s" is replaced by the target URL; otherwise the target is appended.
-      list.push((u) => (custom.indexOf("%s") >= 0 ? custom.replace("%s", u) : custom + encodeURIComponent(u)));
+      list.push({ build: (u) => (custom.indexOf("%s") >= 0 ? custom.replace("%s", u) : custom + encodeURIComponent(u)) });
     }
     return list.concat(BUILTIN_PROXIES);
   }
@@ -425,20 +437,65 @@
     return url.indexOf("https://www.google.com/search?igu=1") === 0;
   }
 
-  async function fetchPageViaProxy(url) {
-    let lastErr;
-    for (const build of browserProxies()) {
+  // Fetches a page through a proxy. Returns the html plus the exact URL the
+  // page really lives at (after redirects), so the address bar can show it.
+  // All proxies are asked at the same time, the first usable answer wins.
+  async function fetchPageViaProxy(url, onFinalUrl) {
+    const proxies = browserProxies();
+    let lastErr = null;
+    const attempt = async (proxy) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 11000);
       try {
-        const r = await fetch(build(url));
+        const r = await fetch(proxy.build(url), { signal: controller.signal });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const text = await r.text();
         if (!text || !text.trim()) throw new Error("empty response");
-        return text;
-      } catch (e) {
-        lastErr = e;
+        if (proxy.json) {
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            throw new Error("invalid json");
+          }
+          const html = data && typeof data.contents === "string" ? data.contents : "";
+          if (!html.trim()) throw new Error("empty response");
+          const finalUrl = data.status && data.status.url ? data.status.url : url;
+          return { html: html, url: finalUrl };
+        }
+        // Guard against error pages that are served with status 200.
+        if (text.indexOf("<") < 0) throw new Error("not html");
+        return { html: text, url: url };
+      } finally {
+        clearTimeout(timer);
       }
-    }
-    throw lastErr || new Error("proxy failed");
+    };
+    return new Promise((resolve, reject) => {
+      let done = false;
+      const settle = (fn, value) => {
+        if (done) return;
+        done = true;
+        fn(value);
+      };
+      proxies.forEach((proxy, index) => {
+        // The proxies are asked in a staggered way, so the preferred one wins
+        // when several answer at about the same time.
+        setTimeout(() => {
+          attempt(proxy).then(
+            (out) => {
+              // A json proxy also knows the url the page really ended up on
+              // (after redirects), so the address bar can be corrected later.
+              if (proxy.json && out && out.url && out.url !== url && typeof onFinalUrl === "function") onFinalUrl(out.url);
+              settle(resolve, out);
+            },
+            (err) => {
+              lastErr = err;
+            }
+          );
+        }, index * 150);
+      });
+      setTimeout(() => settle(reject, lastErr || new Error("proxy timeout")), 12000);
+    });
   }
 
   function baseHrefFor(url) {
@@ -453,6 +510,21 @@
     }
   }
 
+  // Small script injected into proxied pages: it tells the host page which
+  // url the page navigated to, so the address bar always shows the exact url.
+  const URL_REPORTER =
+    "<script>(function(){try{" +
+    "function report(u){if(!u)return;try{parent.postMessage({mist:'navigate',url:u},'*')}catch(e){}}" +
+    "document.addEventListener('click',function(e){" +
+    "var t=e.target;var a=t&&t.closest?t.closest('a[href]'):null;if(!a)return;" +
+    "var h=a.getAttribute('href');if(!h||h.charAt(0)==='#')return;" +
+    "try{report(new URL(h,document.baseURI).href)}catch(err){}" +
+    "},true);" +
+    "var ps=history.pushState,rs=history.replaceState;" +
+    "history.pushState=function(a,b,u){try{report(new URL(u||location.href,location.href).href)}catch(e){}return ps.apply(history,arguments)};" +
+    "history.replaceState=function(a,b,u){try{report(new URL(u||location.href,location.href).href)}catch(e){}return rs.apply(history,arguments)};" +
+    "}catch(e){}})();</script>";
+
   function preparePageHtml(html, url) {
     // Drop tags that would block framing or force a redirect.
     html = html
@@ -461,6 +533,8 @@
     const base = '<base href="' + baseHrefFor(url) + '">';
     if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, (m) => m + base);
     else html = base + html;
+    if (/<\/body>/i.test(html)) html = html.replace(/<\/body>/i, URL_REPORTER + "</body>");
+    else html += URL_REPORTER;
     return html;
   }
 
@@ -603,14 +677,47 @@
     $("#browserNav").classList.remove("home");
   }
 
+  // The fast browser engine needs https (service workers). On plain http the
+  // site still works, but through the proxy renderer, so the user gets a hint
+  // about the https deployment.
+  const NOTICE_KEY = "mistdev.notice.dismissed";
+  function updateBrowserNotice() {
+    const el = $("#browserNotice");
+    if (!el) return;
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(NOTICE_KEY) === "1";
+    } catch (e) {}
+    const insecure = !window.isSecureContext;
+    el.hidden = !(insecure && !dismissed);
+    const link = $("#browserNoticeLink");
+    if (link) link.href = SECURE_SITE_URL;
+  }
+
+  // Keeps the search bar, the address bar and the tab strip pointing at the
+  // page that is actually loaded (the exact url, redirects included).
+  function setCurrentBrowserUrl(url) {
+    if (!url) return;
+    const tab = activeTab();
+    if (tab) {
+      tab.url = url;
+      tab.title = tabTitleForUrl(url);
+      if (tab.index >= 0 && tab.history[tab.index]) tab.history[tab.index] = url;
+    }
+    $("#browserInput").value = url;
+    $("#browserOmnibox").value = url;
+    $("#browserOpen").href = url;
+    renderBrowserTabs();
+    updateBrowserButtons();
+  }
+
   async function loadBrowserUrl(url, pushHistory) {
     if (!url) return;
     const tab = activeTab();
     if (!tab) return;
     tab.url = url;
     tab.title = tabTitleForUrl(url);
-    $("#browserInput").value = url; $("#browserOmnibox").value = url; $("#browserOmnibox").value = url;
-    $("#browserOmnibox").value = url;
+    $("#browserInput").value = url; $("#browserOmnibox").value = url;
     $("#browserOpen").href = url;
     if (pushHistory) {
       tab.history = tab.history.slice(0, tab.index + 1);
@@ -658,10 +765,12 @@
       return;
     }
     try {
-      const html = await fetchPageViaProxy(url);
+      const res = await fetchPageViaProxy(url, (finalUrl) => setCurrentBrowserUrl(finalUrl));
       frame.removeAttribute("src");
-      frame.srcdoc = preparePageHtml(html, url);
+      frame.srcdoc = preparePageHtml(res.html, res.url);
       showBrowserStatus("");
+      // Show the exact url of the page that was loaded.
+      setCurrentBrowserUrl(res.url);
     } catch (e) {
       // Fall back to a plain iframe in case the proxy is down.
       frame.removeAttribute("srcdoc");
@@ -672,17 +781,19 @@
   }
 
   function browserAppUrl(url) {
-    const base = (settings.browserApp || "").trim();
-    if (!base) return "";
+    const base = (settings.browserApp || "").trim() || defaults.browserApp;
     // Opened straight from disk (file://): the app cannot run there (service
     // workers need http/https), and a directory URL would just show a raw
     // file listing. Fall through to the plain-proxy renderer instead.
     if (location.protocol === "file:") return "";
-    // A same-origin app needs a secure context (service workers). An absolute
-    // https app works even when this page itself is served over http.
-    const absoluteHttps = /^https:\/\//i.test(base);
-    if (!absoluteHttps && !window.isSecureContext) return "";
-    return base + (base.indexOf("?") >= 0 ? "&" : "?") + "url=" + encodeURIComponent(url);
+    // The app needs a secure context, and the whole page chain has to be
+    // secure for the browser to hand out a service worker. An https page
+    // inside an http page does not qualify, so on http the pages are loaded
+    // through the proxy renderer instead.
+    if (!window.isSecureContext) return "";
+    const appBase = base;
+    if (!appBase) return "";
+    return appBase + (appBase.indexOf("?") >= 0 ? "&" : "?") + "url=" + encodeURIComponent(url);
   }
 
   function browserGo(source) {
@@ -728,6 +839,15 @@
   $("#browserHome").addEventListener("click", showBrowserHome);
   $("#browserExit").addEventListener("click", () => showView("games"));
   $("#browserTabAdd").addEventListener("click", newTab);
+  const noticeClose = $("#browserNoticeClose");
+  if (noticeClose) {
+    noticeClose.addEventListener("click", () => {
+      try {
+        localStorage.setItem(NOTICE_KEY, "1");
+      } catch (e) {}
+      updateBrowserNotice();
+    });
+  }
   $$(".browser-shortcut").forEach((btn) => {
     btn.addEventListener("click", () => loadBrowserUrl(btn.dataset.url, true));
   });
@@ -743,13 +863,8 @@
     } else if (d.mist === "home") {
       showBrowserHome();
     } else if (d.mist === "navigate" && typeof d.url === "string") {
-      const tab = activeTab();
-      if (!tab) return;
-      tab.url = d.url;
-      tab.title = tabTitleForUrl(d.url);
-      $("#browserInput").value = d.url;
-      $("#browserOmnibox").value = d.url;
-      renderBrowserTabs();
+      // The app reports the exact url of the page it is showing.
+      setCurrentBrowserUrl(d.url);
     }
   });
 

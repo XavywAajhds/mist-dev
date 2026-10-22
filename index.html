@@ -99,6 +99,11 @@
 
         <div class="browser-stage">
           <canvas id="browserCanvas"></canvas>
+          <div class="browser-notice" id="browserNotice" hidden>
+            <span class="browser-notice-text">This site is served over HTTP, so the fast browser engine is unavailable. Pages still load through the built-in proxy.</span>
+            <a class="browser-notice-link" id="browserNoticeLink" href="https://xavywaajhds.github.io/mist-browser/" target="_blank" rel="noopener">Open over HTTPS &#8599;</a>
+            <button class="browser-notice-close" id="browserNoticeClose" type="button" title="Dismiss">&#10005;</button>
+          </div>
           <iframe id="browserFrame" title="Browser" hidden allow="autoplay; fullscreen; clipboard-write; encrypted-media; picture-in-picture"></iframe>
 
           <div class="browser-home" id="browserHomeView">
@@ -197,7 +202,7 @@
           <label for="browserAppInput">Browser app URL</label>
           <input type="text" id="browserAppInput" placeholder="browser/index.html" autocomplete="off" spellcheck="false">
         </div>
-        <p class="block-sub">Clear this to fall back to the simple CORS proxies below, which only fetch page text.</p>
+        <p class="block-sub">The browser app needs HTTPS (it uses a service worker), so it only runs when this page itself is served over HTTPS. On plain HTTP the pages are loaded through the simple CORS proxies below, which only fetch page text.</p>
       </div>
 
       <div class="settings-block">
