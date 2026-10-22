@@ -694,19 +694,30 @@
     if (link) link.href = SECURE_SITE_URL;
   }
 
+  // The url as a browser would show it: "https://example.com" becomes
+  // "https://example.com/", the path and query stay untouched.
+  function canonicalUrl(url) {
+    try {
+      const u = new URL(url);
+      if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
+    } catch (e) {}
+    return url;
+  }
+
   // Keeps the search bar, the address bar and the tab strip pointing at the
   // page that is actually loaded (the exact url, redirects included).
   function setCurrentBrowserUrl(url) {
     if (!url) return;
+    const exact = canonicalUrl(url);
     const tab = activeTab();
     if (tab) {
-      tab.url = url;
-      tab.title = tabTitleForUrl(url);
-      if (tab.index >= 0 && tab.history[tab.index]) tab.history[tab.index] = url;
+      tab.url = exact;
+      tab.title = tabTitleForUrl(exact);
+      if (tab.index >= 0 && tab.history[tab.index]) tab.history[tab.index] = exact;
     }
-    $("#browserInput").value = url;
-    $("#browserOmnibox").value = url;
-    $("#browserOpen").href = url;
+    $("#browserInput").value = exact;
+    $("#browserOmnibox").value = exact;
+    $("#browserOpen").href = exact;
     renderBrowserTabs();
     updateBrowserButtons();
   }
@@ -715,13 +726,13 @@
     if (!url) return;
     const tab = activeTab();
     if (!tab) return;
-    tab.url = url;
+    tab.url = canonicalUrl(url);
     tab.title = tabTitleForUrl(url);
-    $("#browserInput").value = url; $("#browserOmnibox").value = url;
+    $("#browserInput").value = canonicalUrl(url); $("#browserOmnibox").value = canonicalUrl(url);
     $("#browserOpen").href = url;
     if (pushHistory) {
       tab.history = tab.history.slice(0, tab.index + 1);
-      tab.history.push(url);
+      tab.history.push(canonicalUrl(url));
       tab.index = tab.history.length - 1;
     }
     renderBrowserTabs();
