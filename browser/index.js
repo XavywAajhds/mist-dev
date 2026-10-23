@@ -127,16 +127,43 @@ function currentUrl() {
 	return "";
 }
 
+// The same page expressed as the URL the browser actually fetches: the
+// scramjet prefix followed by the encoded target ("with proxy and everything").
+function proxiedUrlFor(url) {
+	try {
+		if (url && scramjet && typeof scramjet.encodeUrl === "function") {
+			return new URL(scramjet.encodeUrl(url), location.href).href;
+		}
+	} catch (e) {}
+	return url;
+}
+
+// Turn a proxied url back into the target, so re-submitting the omnibox does
+// not wrap the proxy url in the proxy a second time.
+function decodeProxiedUrl(value) {
+	try {
+		const u = new URL(value, location.href);
+		const prefix = new URL(BASE + "scramjet/", location.href);
+		if (u.origin !== prefix.origin || !u.pathname.startsWith(prefix.pathname)) return value;
+		const rest = u.pathname.slice(prefix.pathname.length) + u.search;
+		return decodeURIComponent(rest) + u.hash;
+	} catch (e) {
+		return value;
+	}
+}
+
 // Push the URL the user actually sees into the omnibox and the host tab strip.
+// The bar keeps the full proxied url instead of the decoded target.
 function syncFromFrame() {
 	const url = currentUrl();
 	if (!url) return;
-	if (document.activeElement !== address) address.value = url;
+	const proxyUrl = proxiedUrlFor(url);
+	if (document.activeElement !== address) address.value = proxyUrl;
 	popoutBtn.hidden = false;
 	popoutBtn.href = url;
 	backBtn.disabled = false;
 	fwdBtn.disabled = false;
-	post("navigate", { url: url });
+	post("navigate", { url: url, proxyUrl: proxyUrl });
 }
 
 function openLanding() {
@@ -158,12 +185,13 @@ async function go(input) {
 		return;
 	}
 
-	const url = search(input, SEARCH_ENGINE);
+	const url = search(decodeProxiedUrl(input.trim()), SEARCH_ENGINE);
 	dbg("url:" + url);
+	const proxyUrl = proxiedUrlFor(url);
 
 	showError("");
 	showStatus("Connecting…");
-	post("navigate", { url: url });
+	post("navigate", { url: url, proxyUrl: proxyUrl });
 
 	const wisp = await pickWisp();
 	dbg("wisp:" + wisp);
@@ -226,7 +254,7 @@ async function go(input) {
 
 	landing.hidden = true;
 	frameHolder.hidden = false;
-	showStatus("Loading " + url + " …");
+	showStatus("Loading " + proxyUrl + " …");
 	frame.go(url);
 	dbg("frame");
 

@@ -444,10 +444,11 @@
     const proxies = browserProxies();
     let lastErr = null;
     const attempt = async (proxy) => {
+      const built = proxy.build(url);
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 11000);
       try {
-        const r = await fetch(proxy.build(url), { signal: controller.signal });
+        const r = await fetch(built, { signal: controller.signal });
         if (!r.ok) throw new Error("HTTP " + r.status);
         const text = await r.text();
         if (!text || !text.trim()) throw new Error("empty response");
@@ -461,11 +462,11 @@
           const html = data && typeof data.contents === "string" ? data.contents : "";
           if (!html.trim()) throw new Error("empty response");
           const finalUrl = data.status && data.status.url ? data.status.url : url;
-          return { html: html, url: finalUrl };
+          return { html: html, url: finalUrl, proxyUrl: built };
         }
         // Guard against error pages that are served with status 200.
         if (text.indexOf("<") < 0) throw new Error("not html");
-        return { html: text, url: url };
+        return { html: text, url: url, proxyUrl: built };
       } finally {
         clearTimeout(timer);
       }
@@ -485,7 +486,7 @@
             (out) => {
               // A json proxy also knows the url the page really ended up on
               // (after redirects), so the address bar can be corrected later.
-              if (proxy.json && out && out.url && out.url !== url && typeof onFinalUrl === "function") onFinalUrl(out.url);
+              if (proxy.json && out && out.url && out.url !== url && typeof onFinalUrl === "function") onFinalUrl(out.url, out.proxyUrl);
               settle(resolve, out);
             },
             (err) => {
@@ -590,7 +591,7 @@
       });
       icon.src = tab.url ? faviconForUrl(tab.url) : "icons/globe.png";
       el.querySelector(".browser-tab-title").textContent = tab.title || "New Tab";
-      el.querySelector(".browser-tab-url").textContent = tab.url || "Home";
+      el.querySelector(".browser-tab-url").textContent = tab.displayUrl || tab.url || "Home";
       el.addEventListener("click", (e) => {
         if (e.target.closest(".browser-tab-close")) return;
         activateTab(tab.id);
@@ -604,7 +605,7 @@
   }
 
   function createTab(url, title) {
-    const tab = { id: ++tabSeq, url: url || "", title: title || "", history: [], index: -1 };
+    const tab = { id: ++tabSeq, url: url || "", displayUrl: "", title: title || "", history: [], index: -1 };
     browserTabs.push(tab);
     return tab;
   }
@@ -655,6 +656,7 @@
     const tab = activeTab();
     if (tab) {
       tab.url = "";
+      tab.displayUrl = "";
       tab.title = "";
       tab.history = [];
       tab.index = -1;
@@ -698,25 +700,29 @@
   // "https://example.com/", the path and query stay untouched.
   function canonicalUrl(url) {
     try {
-      const u = new URL(url);
+      const u = new URL(url, location.href);
       if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
     } catch (e) {}
     return url;
   }
 
   // Keeps the search bar, the address bar and the tab strip pointing at the
-  // page that is actually loaded (the exact url, redirects included).
-  function setCurrentBrowserUrl(url) {
+  // page that is actually loaded. `displayUrl` is the full proxied url (the
+  // proxy prefix included) and is what the bar shows; `url` stays the real
+  // target so history and back/forward keep working.
+  function setCurrentBrowserUrl(url, displayUrl) {
     if (!url) return;
     const exact = canonicalUrl(url);
+    const shown = displayUrl ? canonicalUrl(displayUrl) : exact;
     const tab = activeTab();
     if (tab) {
       tab.url = exact;
+      tab.displayUrl = shown;
       tab.title = tabTitleForUrl(exact);
       if (tab.index >= 0 && tab.history[tab.index]) tab.history[tab.index] = exact;
     }
-    $("#browserInput").value = exact;
-    $("#browserOmnibox").value = exact;
+    $("#browserInput").value = shown;
+    $("#browserOmnibox").value = shown;
     $("#browserOpen").href = exact;
     renderBrowserTabs();
     updateBrowserButtons();
@@ -727,6 +733,7 @@
     const tab = activeTab();
     if (!tab) return;
     tab.url = canonicalUrl(url);
+    tab.displayUrl = canonicalUrl(url);
     tab.title = tabTitleForUrl(url);
     $("#browserInput").value = canonicalUrl(url); $("#browserOmnibox").value = canonicalUrl(url);
     $("#browserOpen").href = url;
@@ -747,7 +754,8 @@
     if (appUrl) {
       frame.removeAttribute("srcdoc");
       frame.src = appUrl;
-      $("#browserOpen").href = appUrl;
+      // The embedded browser app is the proxy, so the bar shows its full url.
+      setCurrentBrowserUrl(url, appUrl);
       showBrowserStatus("");
       return;
     }
@@ -776,12 +784,12 @@
       return;
     }
     try {
-      const res = await fetchPageViaProxy(url, (finalUrl) => setCurrentBrowserUrl(finalUrl));
+      const res = await fetchPageViaProxy(url, (finalUrl, proxyUrl) => setCurrentBrowserUrl(finalUrl, proxyUrl));
       frame.removeAttribute("src");
       frame.srcdoc = preparePageHtml(res.html, res.url);
       showBrowserStatus("");
-      // Show the exact url of the page that was loaded.
-      setCurrentBrowserUrl(res.url);
+      // Show the full proxied url of the page that was loaded.
+      setCurrentBrowserUrl(res.url, res.proxyUrl);
     } catch (e) {
       // Fall back to a plain iframe in case the proxy is down.
       frame.removeAttribute("srcdoc");
@@ -809,6 +817,13 @@
 
   function browserGo(source) {
     const input = source === "home" ? $("#browserInput") : $("#browserOmnibox");
+    const tab = activeTab();
+    // The bar shows the proxied url; pressing enter again reloads the target
+    // instead of proxying the proxy url a second time.
+    if (tab && tab.displayUrl && input.value.trim() === tab.displayUrl && tab.url) {
+      loadBrowserUrl(tab.url, false);
+      return;
+    }
     const url = resolveBrowserUrl(input.value);
     if (!url) return;
     loadBrowserUrl(url, true);
@@ -874,8 +889,9 @@
     } else if (d.mist === "home") {
       showBrowserHome();
     } else if (d.mist === "navigate" && typeof d.url === "string") {
-      // The app reports the exact url of the page it is showing.
-      setCurrentBrowserUrl(d.url);
+      // The app reports the exact url of the page it is showing, plus the
+      // full proxied form that should appear in the bar.
+      setCurrentBrowserUrl(d.url, typeof d.proxyUrl === "string" ? d.proxyUrl : "");
     }
   });
 
