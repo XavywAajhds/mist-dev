@@ -661,7 +661,6 @@
       });
       list.appendChild(el);
     });
-    renderAttachTabs();
   }
 
   function createTab(url, title) {
@@ -1171,64 +1170,8 @@
     save();
   });
 
-  let attachedTabId = null;
-  let aiEnabled = false;
 
-  function renderAttachTabs() {
-    const sel = $("#attachTabSelect");
-    if (!sel) return;
-    sel.innerHTML = browserTabs.map((t) => '<option value="' + t.id + '">' + (t.title || "New Tab") + "</option>").join("");
-    if (attachedTabId) sel.value = attachedTabId;
-  }
-
-  const cheatAttachBtn = $("#cheatAttach");
-  if (cheatAttachBtn) cheatAttachBtn.addEventListener("click", () => {
-    const sel = $("#attachTabSelect");
-    attachedTabId = sel ? Number(sel.value) : activeTabId;
-    const fc = $("#floatCalc"); if (fc) fc.hidden = false;
-  });
-
-  const aiToggleBtn = $("#aiToggle");
-  if (aiToggleBtn) aiToggleBtn.addEventListener("click", async () => {
-    const btn = $("#aiToggle");
-    aiEnabled = !aiEnabled;
-    btn.textContent = aiEnabled ? "AI solve: ON" : "AI solve";
-    btn.classList.toggle("primary", aiEnabled);
-    if (aiEnabled) {
-      const sel = $("#attachTabSelect");
-      attachedTabId = sel ? Number(sel.value) : activeTabId;
-      await runAiSolve();
-    }
-  });
-
-  async function runAiSolve() {
-    const ans = $("#aiAnswer");
-    if (!ans) return;
-    ans.hidden = false;
-    ans.textContent = "Reading tab...";
-    // try to get page text from active browser tab url
-    const tab = browserTabs.find((t) => t.id === attachedTabId) || activeTab();
-    const url = tab ? (tab.url || "") : "";
-    let context = url;
-    try {
-      // fetch page text via proxy? Use direct fetch (may fail CORS). Fallback to url.
-      const r = await fetch(url, { mode: "no-cors" });
-      // no-cors gives opaque; can't read. So just use url.
-    } catch (e) {}
-    const prompt = "Solve the problem on this page and give the answer only: " + url;
-    try {
-      const r = await fetch("https://text.pollinations.ai/" + encodeURIComponent(prompt));
-      const text = await r.text();
-      ans.textContent = "AI answer: " + text;
-    } catch (e) {
-      ans.textContent = "AI failed: " + e.message;
-    }
-  }
-
-  const floatCloseBtn = $("#floatCalcClose");
-  if (floatCloseBtn) floatCloseBtn.addEventListener("click", () => { const fc = $("#floatCalc"); if (fc) fc.hidden = true; attachedTabId = null; });
-
-  /* ---------- Cheat calculator ---------- */
+  /* ---------- Calculator ---------- */
   let calcExpr = "";
   function calcUpdate() {
     const v = calcExpr || "0";
