@@ -1166,6 +1166,44 @@
     settings.proxy = e.target.value.trim();
     save();
   });
+
+  $("#cheatClose").addEventListener("click", () => showView("browser"));
+  $("#cheatAttach").addEventListener("click", () => { $("#floatCalc").hidden = false; });
+  $("#floatCalcClose").addEventListener("click", () => { $("#floatCalc").hidden = true; });
+
+  /* ---------- Cheat calculator ---------- */
+  let calcExpr = "";
+  function calcUpdate() {
+    const v = calcExpr || "0";
+    const d1 = $("#calcDisplay"); if (d1) d1.textContent = v;
+    const d2 = $("#floatCalcDisplay"); if (d2) d2.textContent = v;
+  }
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".calc-btn");
+    if (!btn) return;
+    const key = btn.dataset.key;
+    if (key === "C") { calcExpr = ""; calcUpdate(); return; }
+    if (key === "=") {
+      try {
+        // only allow digits, operators, decimal
+        if (!/^[0-9+\-*/. ]+$/.test(calcExpr)) { calcExpr = "Err"; calcUpdate(); calcExpr = ""; return; }
+        // replace x? already *; ÷ not used
+        const val = Function('"use strict";return (' + calcExpr + ')')();
+        calcExpr = String(val);
+      } catch (err) {
+        calcExpr = "Err";
+      }
+      calcUpdate();
+      if (calcExpr === "Err") calcExpr = "";
+      return;
+    }
+    if (key === "/" || key === "*" || key === "+" || key === "-") {
+      calcExpr += key;
+    } else {
+      calcExpr += key;
+    }
+    calcUpdate();
+  });
   $("#resetBtn").addEventListener("click", () => {
     if (confirm("Reset theme, cloak and tab settings to defaults?")) {
       localStorage.removeItem(LS);
