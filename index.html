@@ -6,6 +6,24 @@
 <title>Mist.Dev</title>
 <link rel="icon" id="siteFavicon" href="icons/favicon.png" type="image/png">
 <link rel="stylesheet" href="style.css">
+<script>
+// The embedded browser needs a secure context (service worker), and browsers
+// only allow wss from https pages, so move the deployed site to https before
+// anything else loads. Local and private hosts are left alone.
+(function () {
+  if (location.protocol !== "http:") return;
+  var h = location.hostname;
+  var local =
+    h === "localhost" || h === "127.0.0.1" || h === "" ||
+    /^10\./.test(h) || /^192\.168\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h) || /\.local$/i.test(h);
+  if (local) return;
+  var secure = "https://" + location.host + location.pathname + location.search + location.hash;
+  fetch(secure, { method: "HEAD", mode: "no-cors", cache: "no-store" })
+    .then(function () { location.replace(secure); })
+    .catch(function () {});
+})();
+</script>
 </head>
 <body>
 <div class="app">

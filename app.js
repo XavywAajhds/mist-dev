@@ -466,7 +466,23 @@
   }
 
   function isSearchUrl(url) {
-    return /^https:\/\/(?:html\.|lite\.)?duckduckgo\.com\//i.test(url);
+    return /^https:\/\/(?:html\.duckduckgo\.com\/html\/|lite\.duckduckgo\.com\/lite\/|duckduckgo\.com\/\?)/i.test(url);
+  }
+
+  // DuckDuckGo results point at its own /l/?uddg=... redirector. Opening that
+  // through a proxy lands on the bot check, so the real target is decoded and
+  // linked directly instead.
+  function unwrapDuckDuckGoLinks(html) {
+    return html.replace(
+      /href=(["'])(?:https?:)?\/\/duckduckgo\.com\/l\/\?uddg=([^"'&]+)[^"']*\1/gi,
+      (match, quote, encoded) => {
+        try {
+          return "href=" + quote + decodeURIComponent(encoded) + quote;
+        } catch (e) {
+          return match;
+        }
+      }
+    );
   }
 
   // Fetches a page through a proxy. Returns the html plus the exact URL the
@@ -573,6 +589,7 @@
     html = html
       .replace(/<meta[^>]+http-equiv=["']?(content-security-policy|x-frame-options|refresh)["']?[^>]*>/gi, "")
       .replace(/<base[^>]*>/gi, "");
+    if (isSearchUrl(url)) html = unwrapDuckDuckGoLinks(html);
     const base = '<base href="' + baseHrefFor(url) + '">';
     if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, (m) => m + base);
     else html = base + html;
