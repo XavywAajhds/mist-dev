@@ -198,11 +198,18 @@
     <section class="view" id="view-cheat">
       <header class="page-head">
         <h1>Cheat</h1>
-        <p class="page-sub">Calculator. Attach to a tab or close.</p>
-        <button class="btn ghost" id="cheatClose" title="Close">&times;</button>
-        <button class="btn primary" id="cheatAttach" title="Attach to tab">Attach to tab</button>
+        <p class="page-sub">Calculator & AI. Attach to a tab.</p>
       </header>
+
       <div class="cheat-wrap">
+        <div class="cheat-attach">
+          <label for="attachTabSelect">Tab</label>
+          <select id="attachTabSelect"></select>
+          <button class="btn primary" id="cheatAttach">Attach calculator</button>
+          <button class="btn" id="aiToggle">AI solve</button>
+        </div>
+        <div class="ai-answer" id="aiAnswer" hidden></div>
+
         <div class="calc" id="calc">
           <div class="calc-display" id="calcDisplay">0</div>
           <div class="calc-buttons">
