@@ -1181,13 +1181,15 @@
     if (attachedTabId) sel.value = attachedTabId;
   }
 
-  $("#cheatAttach").addEventListener("click", () => {
+  const cheatAttachBtn = $("#cheatAttach");
+  if (cheatAttachBtn) cheatAttachBtn.addEventListener("click", () => {
     const sel = $("#attachTabSelect");
     attachedTabId = sel ? Number(sel.value) : activeTabId;
-    $("#floatCalc").hidden = false;
+    const fc = $("#floatCalc"); if (fc) fc.hidden = false;
   });
 
-  $("#aiToggle").addEventListener("click", async () => {
+  const aiToggleBtn = $("#aiToggle");
+  if (aiToggleBtn) aiToggleBtn.addEventListener("click", async () => {
     const btn = $("#aiToggle");
     aiEnabled = !aiEnabled;
     btn.textContent = aiEnabled ? "AI solve: ON" : "AI solve";
@@ -1223,7 +1225,8 @@
     }
   }
 
-  $("#floatCalcClose").addEventListener("click", () => { $("#floatCalc").hidden = true; attachedTabId = null; });
+  const floatCloseBtn = $("#floatCalcClose");
+  if (floatCloseBtn) floatCloseBtn.addEventListener("click", () => { const fc = $("#floatCalc"); if (fc) fc.hidden = true; attachedTabId = null; });
 
   /* ---------- Cheat calculator ---------- */
   let calcExpr = "";
