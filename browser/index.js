@@ -17,7 +17,7 @@ const homeBtn = document.getElementById("homeBtn");
 const popoutBtn = document.getElementById("popoutBtn");
 const exitBtn = document.getElementById("exitBtn");
 
-const SEARCH_ENGINE = "https://www.google.com/search?q=%s";
+const SEARCH_ENGINE = "https://duckduckgo.com/?q=%s";
 // Resolve all asset paths relative to this document so the app works from any
 // subpath (e.g. "/browser/" or "/mist-browser/" on a GitHub project page).
 const BASE = new URL("./", location.href).pathname;

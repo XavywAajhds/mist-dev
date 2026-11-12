@@ -404,15 +404,42 @@
   // CORS proxies used to pull a page's HTML so it can be rendered from srcdoc,
   // which sidesteps the X-Frame-Options / frame-ancestors blocks that stop
   // normal iframe embedding. A custom proxy (set in Settings) is tried first.
+  // The first entry is a proxy that was scraped from the public CORS-proxy
+  // lists and verified to answer with real HTML; the rest are spares.
   const BUILTIN_PROXIES = [
-    { build: (u) => "https://api.allorigins.win/get?url=" + encodeURIComponent(u), json: true },
-    { build: (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u) },
-    { build: (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u) },
-    { build: (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u) },
+    { build: (u) => "https://cors.io/?url=" + encodeURIComponent(u), json: true },
     { build: (u) => "https://api.cors.lol/?url=" + encodeURIComponent(u) },
+    { build: (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u) },
+    { build: (u) => "https://api.allorigins.win/get?url=" + encodeURIComponent(u), json: true },
+    { build: (u) => "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u) },
     { build: (u) => "https://cors.eu.org/" + u },
-    { build: (u) => "https://thingproxy.freeboard.io/fetch/" + u },
+    { build: (u) => "https://test.cors.workers.dev/?" + u },
+    { build: (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u) },
   ];
+
+  // `proxies.json` is written by tools/scrape-proxies.mjs. When it exists the
+  // app prefers the proxies that were verified at scrape time.
+  let scrapedProxies = null;
+  function proxyFromScrapeConfig(entry) {
+    const template = entry && typeof entry.url === "string" ? entry.url.trim() : "";
+    if (!template) return null;
+    return {
+      build: (u) =>
+        template
+          .replace("%s", encodeURIComponent(u))
+          .replace("%u", u)
+          .replace("%p", new URL(u).href),
+      json: !!entry.json,
+    };
+  }
+  fetch("proxies.json", { cache: "no-cache" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      const list = data && Array.isArray(data.proxies) ? data.proxies : [];
+      const built = list.map(proxyFromScrapeConfig).filter(Boolean);
+      if (built.length) scrapedProxies = built;
+    })
+    .catch(() => {});
 
   function browserProxies() {
     const list = [];
@@ -421,8 +448,13 @@
       // "%s" is replaced by the target URL; otherwise the target is appended.
       list.push({ build: (u) => (custom.indexOf("%s") >= 0 ? custom.replace("%s", u) : custom + encodeURIComponent(u)) });
     }
+    if (scrapedProxies) list.push.apply(list, scrapedProxies);
     return list.concat(BUILTIN_PROXIES);
   }
+
+  // DuckDuckGo's server-rendered HTML endpoint is the lightest thing to send
+  // through a text-only CORS proxy (no JavaScript needs to run).
+  const SEARCH_ENGINE = "https://html.duckduckgo.com/html/?q=";
 
   function resolveBrowserUrl(value) {
     const v = value.trim();
@@ -430,11 +462,11 @@
     if (/^https?:\/\//i.test(v)) return v;
     const looksLikeUrl = !/\s/.test(v) && /^[^\s]+\.[^\s]{2,}(\/\S*)?$/.test(v);
     if (looksLikeUrl) return "https://" + v;
-    return "https://www.google.com/search?igu=1&q=" + encodeURIComponent(v);
+    return SEARCH_ENGINE + encodeURIComponent(v);
   }
 
   function isSearchUrl(url) {
-    return url.indexOf("https://www.google.com/search?igu=1") === 0;
+    return /^https:\/\/(?:html\.|lite\.)?duckduckgo\.com\//i.test(url);
   }
 
   // Fetches a page through a proxy. Returns the html plus the exact URL the
@@ -459,9 +491,19 @@
           } catch (e) {
             throw new Error("invalid json");
           }
-          const html = data && typeof data.contents === "string" ? data.contents : "";
+          const html =
+            data && typeof data.body === "string"
+              ? data.body
+              : data && typeof data.contents === "string"
+                ? data.contents
+                : "";
           if (!html.trim()) throw new Error("empty response");
-          const finalUrl = data.status && data.status.url ? data.status.url : url;
+          const finalUrl =
+            data.status && data.status.url
+              ? data.status.url
+              : typeof data.url === "string"
+                ? data.url
+                : url;
           return { html: html, url: finalUrl, proxyUrl: built };
         }
         // Guard against error pages that are served with status 200.
@@ -559,7 +601,7 @@
   }
 
   function tabTitleForUrl(url) {
-    if (isSearchUrl(url)) return "Google Search";
+    if (isSearchUrl(url)) return "DuckDuckGo";
     return tabHost(url) || url;
   }
 
@@ -760,13 +802,8 @@
       return;
     }
 
-    // Searches use the frame-friendly Google endpoint directly.
-    if (isSearchUrl(url)) {
-      frame.removeAttribute("srcdoc");
-      frame.src = url;
-      showBrowserStatus("");
-      return;
-    }
+    // Search results (DuckDuckGo) refuse to be framed, so they go through the
+    // proxy renderer below just like any other page.
 
     // Everything else: fetch the HTML through a proxy and render it ourselves.
     const localHint =

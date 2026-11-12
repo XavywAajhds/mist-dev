@@ -1,0 +1,11 @@
+{
+  "generated": "2026-11-12T01:44:07.584Z",
+  "test": "https://example.com/",
+  "proxies": [
+    {
+      "url": "https://cors.io/?url=%s",
+      "ms": 199,
+      "json": true
+    }
+  ]
+}
