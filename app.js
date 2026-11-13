@@ -970,13 +970,38 @@
   }
 
   let screenStream = null;
+  let screenShareTimer = null;
+  function drawScreenShareFrame() {
+    const video = $("#screenShareVideo");
+    const canvas = $("#screenShareCanvas");
+    if (!video || !canvas || !screenStream) return;
+    if (video.readyState < 2) return;
+    const w = video.videoWidth || 0;
+    const h = video.videoHeight || 0;
+    if (!w || !h) return;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    const ctx = canvas.getContext("2d");
+    if (ctx) ctx.drawImage(video, 0, 0, w, h);
+  }
   function stopScreenShare() {
+    if (screenShareTimer) {
+      clearInterval(screenShareTimer);
+      screenShareTimer = null;
+    }
     if (screenStream) {
       screenStream.getTracks().forEach((t) => t.stop());
       screenStream = null;
     }
     const video = $("#screenShareVideo");
     if (video) video.srcObject = null;
+    const canvas = $("#screenShareCanvas");
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvas.width || 0, canvas.height || 0);
+    }
     const wrap = $("#screenShareWrap");
     if (wrap) wrap.hidden = true;
   }
@@ -993,9 +1018,14 @@
         screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
         const video = $("#screenShareVideo");
         const wrap = $("#screenShareWrap");
-        if (video) video.srcObject = screenStream;
+        if (video) {
+          video.srcObject = screenStream;
+          try { await video.play(); } catch (e) {}
+        }
         if (wrap) wrap.hidden = false;
-        if (hint) hint.textContent = "Sharing started. Choose a Chrome tab/window/screen in the picker.";
+        drawScreenShareFrame();
+        screenShareTimer = setInterval(drawScreenShareFrame, 100); // reload/update every 0.1s
+        if (hint) hint.textContent = "Sharing started. Click the shared view to enlarge.";
         screenStream.getVideoTracks().forEach((track) => {
           track.addEventListener("ended", () => {
             stopScreenShare();
@@ -1014,6 +1044,13 @@
     const hint = $("#shareScreenHint");
     if (hint) hint.textContent = "Sharing stopped.";
   });
+  const shareCanvas = $("#screenShareCanvas");
+  if (shareCanvas) {
+    shareCanvas.addEventListener("click", () => {
+      if (shareCanvas.requestFullscreen) shareCanvas.requestFullscreen();
+      else if (shareCanvas.webkitRequestFullscreen) shareCanvas.webkitRequestFullscreen();
+    });
+  }
   const noticeClose = $("#browserNoticeClose");
   if (noticeClose) {
     noticeClose.addEventListener("click", () => {
