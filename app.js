@@ -975,7 +975,10 @@
     const video = $("#screenShareVideo");
     const canvas = $("#screenShareCanvas");
     if (!video || !canvas || !screenStream) return;
-    if (video.readyState < 2) return;
+    if (video.readyState < 2) {
+      try { video.play().catch(() => {}); } catch (e) {}
+      return;
+    }
     const w = video.videoWidth || 0;
     const h = video.videoHeight || 0;
     if (!w || !h) return;
@@ -984,7 +987,9 @@
       canvas.height = h;
     }
     const ctx = canvas.getContext("2d");
-    if (ctx) ctx.drawImage(video, 0, 0, w, h);
+    if (ctx) {
+      try { ctx.drawImage(video, 0, 0, w, h); } catch (e) {}
+    }
   }
   function stopScreenShare() {
     if (screenShareTimer) {
@@ -996,7 +1001,10 @@
       screenStream = null;
     }
     const video = $("#screenShareVideo");
-    if (video) video.srcObject = null;
+    if (video) {
+      video.pause();
+      video.srcObject = null;
+    }
     const canvas = $("#screenShareCanvas");
     if (canvas) {
       const ctx = canvas.getContext("2d");
@@ -1020,12 +1028,16 @@
         const wrap = $("#screenShareWrap");
         if (video) {
           video.srcObject = screenStream;
+          video.onloadedmetadata = () => {
+            video.play().catch(() => {});
+            drawScreenShareFrame();
+          };
           try { await video.play(); } catch (e) {}
         }
         if (wrap) wrap.hidden = false;
         drawScreenShareFrame();
         screenShareTimer = setInterval(drawScreenShareFrame, 100); // reload/update every 0.1s
-        if (hint) hint.textContent = "Sharing started. Click the shared view to enlarge.";
+        if (hint) hint.textContent = "Sharing started. If the preview is blank, make sure the shared tab is visible/active, then click the preview to enlarge.";
         screenStream.getVideoTracks().forEach((track) => {
           track.addEventListener("ended", () => {
             stopScreenShare();

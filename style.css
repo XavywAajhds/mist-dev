@@ -451,6 +451,13 @@ button, input, select { font: inherit; color: inherit; }
 .calc-share .btn { margin-bottom: 10px; }
 .screen-share-preview { margin-top: 10px; }
 .screen-share-preview[hidden] { display: none; }
+.screen-share-source {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
 .screen-share-canvas {
   width: 100%;
   max-width: 100%;
