@@ -228,6 +228,12 @@
         <div class="calc-share">
           <button class="btn primary" id="shareTabBtn" type="button">Open selected tab in real browser</button>
           <p class="block-sub" id="shareTabHint">Opens the currently selected in-app browser tab as a real tab in your browser (outside this website). Select a page in Home first.</p>
+          <button class="btn" id="shareScreenBtn" type="button">Share a real Chrome tab</button>
+          <p class="block-sub" id="shareScreenHint">Opens your browser’s share picker so you can choose one of your real Chrome tabs/windows/screen to share with this site.</p>
+          <div class="screen-share-preview" id="screenShareWrap" hidden>
+            <video id="screenShareVideo" autoplay playsinline muted></video>
+            <button class="btn ghost" id="stopShareBtn" type="button">Stop sharing</button>
+          </div>
         </div>
       </div>
     </section>

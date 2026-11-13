@@ -968,6 +968,52 @@
       }
     });
   }
+
+  let screenStream = null;
+  function stopScreenShare() {
+    if (screenStream) {
+      screenStream.getTracks().forEach((t) => t.stop());
+      screenStream = null;
+    }
+    const video = $("#screenShareVideo");
+    if (video) video.srcObject = null;
+    const wrap = $("#screenShareWrap");
+    if (wrap) wrap.hidden = true;
+  }
+  const shareScreenBtn = $("#shareScreenBtn");
+  if (shareScreenBtn) {
+    shareScreenBtn.addEventListener("click", async () => {
+      const hint = $("#shareScreenHint");
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        if (hint) hint.textContent = "Screen/tab sharing is not supported in this browser.";
+        return;
+      }
+      try {
+        stopScreenShare();
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const video = $("#screenShareVideo");
+        const wrap = $("#screenShareWrap");
+        if (video) video.srcObject = screenStream;
+        if (wrap) wrap.hidden = false;
+        if (hint) hint.textContent = "Sharing started. Choose a Chrome tab/window/screen in the picker.";
+        screenStream.getVideoTracks().forEach((track) => {
+          track.addEventListener("ended", () => {
+            stopScreenShare();
+            const h = $("#shareScreenHint");
+            if (h) h.textContent = "Sharing stopped.";
+          });
+        });
+      } catch (e) {
+        if (hint) hint.textContent = "Sharing cancelled or not allowed.";
+      }
+    });
+  }
+  const stopShareBtn = $("#stopShareBtn");
+  if (stopShareBtn) stopShareBtn.addEventListener("click", () => {
+    stopScreenShare();
+    const hint = $("#shareScreenHint");
+    if (hint) hint.textContent = "Sharing stopped.";
+  });
   const noticeClose = $("#browserNoticeClose");
   if (noticeClose) {
     noticeClose.addEventListener("click", () => {
