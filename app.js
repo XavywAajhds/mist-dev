@@ -1036,8 +1036,8 @@
         }
         if (wrap) wrap.hidden = false;
         drawScreenShareFrame();
-        screenShareTimer = setInterval(drawScreenShareFrame, 100); // reload/update every 0.1s
-        if (hint) hint.textContent = "Sharing started. If the preview is blank, make sure the shared tab is visible/active, then click the preview to enlarge.";
+        screenShareTimer = setInterval(drawScreenShareFrame, 1000); // reload/update every 1s
+        if (hint) hint.textContent = "Sharing started. Preview refreshes every second — click the shared view to enlarge (fullscreen). The shared content is view-only and can't be controlled from here.";
         screenStream.getVideoTracks().forEach((track) => {
           track.addEventListener("ended", () => {
             stopScreenShare();
@@ -1059,6 +1059,10 @@
   const shareCanvas = $("#screenShareCanvas");
   if (shareCanvas) {
     shareCanvas.addEventListener("click", () => {
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) document.exitFullscreen();
+        return;
+      }
       if (shareCanvas.requestFullscreen) shareCanvas.requestFullscreen();
       else if (shareCanvas.webkitRequestFullscreen) shareCanvas.webkitRequestFullscreen();
     });
