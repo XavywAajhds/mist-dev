@@ -46,6 +46,10 @@
         <span>Games</span>
         <span class="nav-badge" id="gameCount"></span>
       </button>
+      <button class="nav-item" data-view="calculator">
+        <img src="icons/calculator.png" alt="">
+        <span>Calculator</span>
+      </button>
       <button class="nav-item" data-view="settings">
         <img src="icons/settings.png" alt="">
         <span>Settings</span>
@@ -112,6 +116,7 @@
             <input id="browserOmnibox" type="text" placeholder="Search or enter a link..." autocomplete="off" spellcheck="false">
           </form>
           <a class="tbtn page-only" id="browserOpen" target="_blank" rel="noopener" title="Open in new tab">&#8599;</a>
+          <button class="tbtn page-only" id="browserCalcToggle" title="Toggle calculator on selected tab" type="button">&#128425;</button>
           <button class="tbtn" id="browserExit" title="Exit browser" type="button">&#10005;</button>
         </div>
 
@@ -163,33 +168,69 @@
           <div class="float-calc" id="floatCalc" hidden>
             <div class="float-calc-head">
               <span>Calculator</span>
-              <button class="btn ghost" id="floatCalcClose">&times;</button>
+              <button class="btn ghost" id="floatCalcClose" title="Hide calculator">&times;</button>
             </div>
             <div class="calc-display" id="floatCalcDisplay">0</div>
             <div class="calc-buttons">
+              <button class="calc-btn clear" data-key="C">C</button>
+              <button class="calc-btn op" data-key="/">÷</button>
+              <button class="calc-btn op" data-key="*">x</button>
+              <button class="calc-btn op" data-key="-">-</button>
               <button class="calc-btn" data-key="7">7</button>
               <button class="calc-btn" data-key="8">8</button>
               <button class="calc-btn" data-key="9">9</button>
-              <button class="calc-btn op" data-key="/">÷</button>
+              <button class="calc-btn op" data-key="+">+</button>
               <button class="calc-btn" data-key="4">4</button>
               <button class="calc-btn" data-key="5">5</button>
               <button class="calc-btn" data-key="6">6</button>
-              <button class="calc-btn op" data-key="*">x</button>
+              <button class="calc-btn eq tall" data-key="=">=</button>
               <button class="calc-btn" data-key="1">1</button>
               <button class="calc-btn" data-key="2">2</button>
               <button class="calc-btn" data-key="3">3</button>
-              <button class="calc-btn op" data-key="-">-</button>
-              <button class="calc-btn" data-key="0">0</button>
+              <button class="calc-btn wide" data-key="0">0</button>
               <button class="calc-btn" data-key=".">.</button>
-              <button class="calc-btn eq" data-key="=">=</button>
-              <button class="calc-btn op" data-key="+">+</button>
-              <button class="calc-btn clear" data-key="C">C</button>
             </div>
           </div>
         </div>
       </div>
     </section>
 
+
+    <!-- CALCULATOR -->
+    <section class="view" id="view-calculator">
+      <header class="page-head">
+        <h1>Calculator</h1>
+        <p class="page-sub">Full calculator with +, -, x, and &divide;. Share the selected browser tab outside this site.</p>
+      </header>
+      <div class="settings-block calc-page-block">
+        <div class="calc calc-full" id="mainCalc">
+          <div class="calc-display" id="calcDisplay">0</div>
+          <div class="calc-buttons">
+            <button class="calc-btn clear" data-key="C">C</button>
+            <button class="calc-btn op" data-key="/">÷</button>
+            <button class="calc-btn op" data-key="*">x</button>
+            <button class="calc-btn op" data-key="-">-</button>
+            <button class="calc-btn" data-key="7">7</button>
+            <button class="calc-btn" data-key="8">8</button>
+            <button class="calc-btn" data-key="9">9</button>
+            <button class="calc-btn op" data-key="+">+</button>
+            <button class="calc-btn" data-key="4">4</button>
+            <button class="calc-btn" data-key="5">5</button>
+            <button class="calc-btn" data-key="6">6</button>
+            <button class="calc-btn eq tall" data-key="=">=</button>
+            <button class="calc-btn" data-key="1">1</button>
+            <button class="calc-btn" data-key="2">2</button>
+            <button class="calc-btn" data-key="3">3</button>
+            <button class="calc-btn wide" data-key="0">0</button>
+            <button class="calc-btn" data-key=".">.</button>
+          </div>
+        </div>
+        <div class="calc-share">
+          <button class="btn primary" id="shareTabBtn" type="button">Open selected tab in real browser</button>
+          <p class="block-sub" id="shareTabHint">Opens the currently selected in-app browser tab as a real tab in your browser (outside this website). Select a page in Home first.</p>
+        </div>
+      </div>
+    </section>
 
     <!-- SETTINGS -->
     <section class="view" id="view-settings">

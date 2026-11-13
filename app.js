@@ -685,18 +685,26 @@
     if (!tab) return;
     if (tab.url) loadBrowserUrl(tab.url, false);
     else showBrowserHome();
-    // show attached calculator if this tab is attached
+    updateFloatCalc();
+  }
+
+  function updateFloatCalc() {
     const fc = $("#floatCalc");
-    if (fc) fc.hidden = !(attachedTabId && attachedTabId === id);
+    if (!fc) return;
+    const tab = activeTab();
+    const show = !!(attachedTabId && tab && tab.id === attachedTabId && tab.url);
+    fc.hidden = !show;
   }
 
   function closeTab(id) {
     const idx = browserTabs.findIndex((t) => t.id === id);
     if (idx === -1) return;
     const wasActive = id === activeTabId;
+    if (id === attachedTabId) attachedTabId = null;
     browserTabs.splice(idx, 1);
     if (!browserTabs.length) {
       newTab();
+      updateFloatCalc();
       return;
     }
     if (wasActive) {
@@ -706,6 +714,7 @@
       else showBrowserHome();
     }
     renderBrowserTabs();
+    updateFloatCalc();
   }
 
   function showBrowserStatus(msg) {
@@ -731,7 +740,8 @@
     renderBrowserTabs();
     updateBrowserButtons();
     $("#browserInput").value = "";
-    $("#browserOmnibox").value = ""; $("#browserInput").value = ""; $("#browserInput").value = "";
+    $("#browserOmnibox").value = "";
+    updateFloatCalc();
   }
 
   function showBrowserPage() {
@@ -739,6 +749,7 @@
     $("#browserFrame").hidden = false;
     $("#browserNav").hidden = false;
     $("#browserNav").classList.remove("home");
+    updateFloatCalc();
   }
 
   // The fast browser engine needs https (service workers). On plain http the
@@ -922,6 +933,41 @@
   $("#browserHome").addEventListener("click", showBrowserHome);
   $("#browserExit").addEventListener("click", () => showView("games"));
   $("#browserTabAdd").addEventListener("click", newTab);
+  const calcToggle = $("#browserCalcToggle");
+  if (calcToggle) {
+    calcToggle.addEventListener("click", () => {
+      const tab = activeTab();
+      if (!tab || !tab.url) {
+        showBrowserStatus("Open a page in a tab to show the calculator on it.");
+        setTimeout(() => showBrowserStatus(""), 2500);
+        return;
+      }
+      attachedTabId = attachedTabId === tab.id ? null : tab.id;
+      updateFloatCalc();
+    });
+  }
+  const floatClose = $("#floatCalcClose");
+  if (floatClose) floatClose.addEventListener("click", () => { attachedTabId = null; updateFloatCalc(); });
+
+  const shareTabBtn = $("#shareTabBtn");
+  if (shareTabBtn) {
+    shareTabBtn.addEventListener("click", () => {
+      const tab = activeTab();
+      const url = tab && tab.url ? tab.url : "";
+      const hint = $("#shareTabHint");
+      if (!url) {
+        if (hint) hint.textContent = "No browser tab selected. Open a page in Home first, then open it in a real browser tab.";
+        return;
+      }
+      const opened = window.open(url, "_blank", "noopener");
+      if (opened) {
+        if (hint) hint.textContent = "Opened in a real browser tab: " + url;
+      } else {
+        window.prompt("Popup blocked. Copy this URL to open it in a real browser tab:", url);
+        if (hint) hint.textContent = "Popup blocked. URL: " + url;
+      }
+    });
+  }
   const noticeClose = $("#browserNoticeClose");
   if (noticeClose) {
     noticeClose.addEventListener("click", () => {
