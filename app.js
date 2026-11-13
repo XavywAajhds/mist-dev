@@ -1237,21 +1237,48 @@
 
   /* ---------- Load games ---------- */
   async function fetchJson(urls) {
-    let lastErr;
-    for (const u of urls) {
+    const tryOne = async (u) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
       try {
-        const r = await fetch(u);
+        const r = await fetch(u, { signal: controller.signal, cache: "no-cache" });
         if (!r.ok) throw new Error("HTTP " + r.status);
         return await r.json();
-      } catch (e) {
-        lastErr = e;
+      } finally {
+        clearTimeout(timer);
       }
-    }
-    throw lastErr || new Error("fetch failed");
+    };
+    return new Promise((resolve, reject) => {
+      let pending = urls.length;
+      let lastErr = null;
+      if (!pending) return reject(new Error("fetch failed"));
+      urls.forEach((u, i) => {
+        setTimeout(() => {
+          tryOne(u).then(resolve, (e) => {
+            lastErr = e;
+            pending -= 1;
+            if (pending === 0) reject(lastErr || new Error("fetch failed"));
+          });
+        }, i * 200);
+      });
+    });
   }
 
   async function loadGames() {
-    $("#gamesLoading").hidden = false;
+    const loading = $("#gamesLoading");
+    loading.hidden = false;
+    loading.textContent = "Loading games...";
+    // show cached games immediately if available, then refresh in background
+    try {
+      const cached = JSON.parse(localStorage.getItem("mistdev.games.cache") || "{}");
+      if (cached.list && cached.list.length && !games.length) {
+        games = cached.list;
+        $("#gameCount").textContent = games.length;
+        $("#searchInput").placeholder = "Search " + games.length + "+ games...";
+        renderGames();
+        loading.hidden = true;
+      }
+    } catch (e) {}
     try {
       const data = await fetchJson(ZONES_URLS);
       games = (data || [])
@@ -1264,22 +1291,17 @@
           return { id: g.id, name: g.name, cover, url, author: g.author || "", featured: !!g.featured, special: g.special || null };
         });
       $("#gameCount").textContent = games.length;
-      $("#gamesLoading").hidden = true;
+      loading.hidden = true;
       $("#searchInput").placeholder = "Search " + games.length + "+ games...";
       renderGames();
       localStorage.setItem("mistdev.games.cache", JSON.stringify({ at: Date.now(), list: games }));
     } catch (e) {
-      try {
-        const cached = JSON.parse(localStorage.getItem("mistdev.games.cache") || "{}");
-        if (cached.list && cached.list.length) {
-          games = cached.list;
-          $("#gameCount").textContent = games.length;
-          $("#gamesLoading").hidden = true;
-          renderGames();
-          return;
-        }
-      } catch (e2) {}
-      $("#gamesLoading").textContent = "Could not load games: " + e.message + " - Retrying...";
+      if (games.length) {
+        loading.hidden = true;
+        return;
+      }
+      loading.hidden = false;
+      loading.textContent = "Could not load games: " + (e && e.message ? e.message : "network error") + " - Retrying...";
       setTimeout(loadGames, 4000);
     }
   }
